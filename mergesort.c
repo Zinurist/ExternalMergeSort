@@ -1,10 +1,10 @@
 #include "mergesort.h"
 
-int start(int fd, EL_TYPE *buffer, size_t size, int num_threads){
+int start(int fd, EL_TYPE *buffer, size_t size, uint64_t num_threads){
 
 	
 	int num_elements;
-	read(fd, &num_elements, 4);
+	read(fd, &num_elements, sizeof(uint64_t));
 	printf("%i elements to sort\n",num_elements);
 
 	//create buffer file

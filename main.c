@@ -19,7 +19,7 @@ int main(int argc, char *argv[]){
 	char *file = argv[1];
 	size_t size = 1024*1024*DEFAULT_SIZE;
 	int num_threads = DEFAULT_THREADS;
-	int num_create = -1;
+	uint64_t num_create = -1;
 
 	for (int i=2; i<argc; i++){
 		if(strcmp(argv[i], "-s") == 0){
@@ -39,7 +39,7 @@ int main(int argc, char *argv[]){
 			num_threads = atoi(argv[i]);
 		}else if(strcmp(argv[i], "-c") == 0){
 			i++;
-			num_create = atoi(argv[i]);
+			num_create = strtoll(argv[i], NULL, 10);
 			if(num_create<=0){
 				printf("Error: Number in create option must be positive!\n");
 				return 1;
@@ -62,6 +62,17 @@ int main(int argc, char *argv[]){
 	//open file
 	int fd = -1;
 	if(num_create>0){
+		if(num_create >= (1024*1024*1024)/EL_SIZE){
+			char ans = 'n';
+			printf("This will create a file of %.2f Gbyte, continue? (y/n, default: n) ", 
+				EL_SIZE*num_create/(1024.0*1024.0*1024.0));
+			scanf("%c", &ans);
+			if(ans != 'y'){
+				printf("Aborting.\n");
+				return 0;
+			}
+		}
+
 		fd = open(file, O_RDWR|O_CREAT);
 	}else{
 		fd = open(file, O_RDWR);

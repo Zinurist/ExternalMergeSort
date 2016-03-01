@@ -1,8 +1,8 @@
 #include "generator.h"
 
-int generate(int fd, EL_TYPE *buffer, size_t size,  int num_create){
+int generate(int fd, EL_TYPE *buffer, size_t size,  uint64_t num_create){
 	int written = 0;
-	written = write(fd, &num_create, 4);
+	written = write(fd, &num_create, sizeof(uint64_t));
 
 	if(written <=0 ){
 		printf("Error in generate: %s\n", strerror(errno));
