@@ -1,4 +1,5 @@
 #include "std.h"
 
+#include <sys/types.h>
 
-void start(int fd, int fd_buffer, size_t file_size, EL_TYPE *buffer, size_t size, int num_threads);
+int start(int fd, EL_TYPE *buffer, size_t size, int num_threads);

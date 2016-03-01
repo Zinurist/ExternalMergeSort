@@ -1,12 +1,12 @@
 #include "generator.h"
 
-void generate(int fd, EL_TYPE *buffer, size_t size,  int num_create){
+int generate(int fd, EL_TYPE *buffer, size_t size,  int num_create){
 	int written = 0;
 	written = write(fd, &num_create, 4);
 
 	if(written <=0 ){
 		printf("Error in generate: %s\n", strerror(errno));
-		return;
+		return 6;
 	}
 
 
@@ -31,15 +31,16 @@ void generate(int fd, EL_TYPE *buffer, size_t size,  int num_create){
 			buffer[offset+k] = rand();
 		}
 
-		written = write(fd, buffer, 4*limit);
+		written = write(fd, buffer, EL_SIZE*limit);
 
 		if(written <=0 ){
 			printf("Error in generate: %s\n", strerror(errno));
-			return;
+			return 7;
 		}
 
 		offset+=limit;
 		num_create-=limit;
 	}
 
+	return 0;
 }

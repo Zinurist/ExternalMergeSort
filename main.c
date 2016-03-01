@@ -72,38 +72,14 @@ int main(int argc, char *argv[]){
 	}
 
 
+	int err_code = 0;
 	//start routines
 	if(num_create>0){
-		generate(fd, (int*)buffer, size/EL_SIZE, num_create);
+		err_code = generate(fd, (EL_TYPE*)buffer, size/EL_SIZE, num_create);
 	}else{
-		//get size of file/number of elements
-		struct stat st;
-		stat(file, &st);
-		size_t file_size = st.st_size;
-
-		//create buffer file
-		char * tmp = "mergesortXXXXXX";
-		int fd_buffer = -1;
-		fd_buffer = mkstemp(tmp);
-		unlink(tmp);//->file gets deleted when closed
-		if(fd_buffer < 0){
-			printf("Error when creating buffer file: %s\n",strerror(errno));
-			close(fd);
-			return 4;
-		}
-		//make sure, enough space is available
-		if(ftruncate(fd_buffer, file_size/2 + EL_SIZE)){
-			printf("Error when truncating buffer file: %s\n",strerror(errno));
-			close(fd);
-			close(fd_buffer);
-			return 5;
-		}
-
-		start(fd, fd_buffer, file_size, (int*)buffer, size/EL_SIZE, num_threads);
-
-		close(fd_buffer);
+		err_code = start(fd, (EL_TYPE*)buffer, size/EL_SIZE, num_threads);
 	}
 
 	close(fd);
-	return 0;
+	return err_code;
 }
