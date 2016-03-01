@@ -1,8 +1,9 @@
 #include "generator.h"
 
-void generate(int fd, int *buffer, size_t size,  int num_create){
-	int written = write(fd, &num_create, 4);
-	
+void generate(int fd, EL_TYPE *buffer, size_t size,  int num_create){
+	int written = 0;
+	written = write(fd, &num_create, 4);
+
 	if(written <=0 ){
 		printf("Error in generate: %s\n", strerror(errno));
 		return;

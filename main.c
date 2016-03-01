@@ -34,7 +34,6 @@ int main(int argc, char *argv[]){
 		}else if(strcmp(argv[i], "-sb") == 0){
 			i++;
 			size = atoi(argv[i]);
-			size = (size/4)*4;
 		}else if(strcmp(argv[i], "-t") == 0){
 			i++;
 			num_threads = atoi(argv[i]);
@@ -43,18 +42,20 @@ int main(int argc, char *argv[]){
 			num_create = atoi(argv[i]);
 			if(num_create<=0){
 				printf("Error: Number in create option must be positive!\n");
-				return -1;
+				return 1;
 			}
 		}
 
 	}
+	//making sure, it's correctly aligned
+	size = (size/EL_SIZE)*EL_SIZE;
 
 
 	//allocate buffer
 	buffer = malloc(size);
 	if(!buffer){
 		printf("Error: Couldn't allocate enough memory!\n");
-		return -1;
+		return 2;
 	}
 
 
@@ -66,16 +67,41 @@ int main(int argc, char *argv[]){
 		fd = open(file, O_RDWR);
 	}
 	if(fd < 0){
-		printf("Error: %s\n",strerror(errno));
-		return -1;
+		printf("Error when reading file: %s\n",strerror(errno));
+		return 3;
 	}
 
 
 	//start routines
 	if(num_create>0){
-		generate(fd, (int*)buffer, size/4, num_create);
+		generate(fd, (int*)buffer, size/EL_SIZE, num_create);
 	}else{
-		start(fd, (int*)buffer, size/4, num_threads);
+		//get size of file/number of elements
+		struct stat st;
+		stat(file, &st);
+		size_t file_size = st.st_size;
+
+		//create buffer file
+		char * tmp = "mergesortXXXXXX";
+		int fd_buffer = -1;
+		fd_buffer = mkstemp(tmp);
+		unlink(tmp);//->file gets deleted when closed
+		if(fd_buffer < 0){
+			printf("Error when creating buffer file: %s\n",strerror(errno));
+			close(fd);
+			return 4;
+		}
+		//make sure, enough space is available
+		if(ftruncate(fd_buffer, file_size/2 + EL_SIZE)){
+			printf("Error when truncating buffer file: %s\n",strerror(errno));
+			close(fd);
+			close(fd_buffer);
+			return 5;
+		}
+
+		start(fd, fd_buffer, file_size, (int*)buffer, size/EL_SIZE, num_threads);
+
+		close(fd_buffer);
 	}
 
 	close(fd);

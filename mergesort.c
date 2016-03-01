@@ -1,6 +1,6 @@
 #include "mergesort.h"
 
-void start(int fd, int *buffer, size_t size, int num_threads){
+void start(int fd, int fd_buffer, size_t file_size, EL_TYPE *buffer, size_t size, int num_threads){
 
 	int num_elements;
 	read(fd, &num_elements, 4);
