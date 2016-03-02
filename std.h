@@ -8,4 +8,4 @@
 #include <inttypes.h>
 
 #define EL_TYPE int
-#define EL_SIZE sizeof(EL_TYPE)
+#define EL_SIZE (sizeof(EL_TYPE))

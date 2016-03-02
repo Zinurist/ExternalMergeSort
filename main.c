@@ -19,7 +19,7 @@ int main(int argc, char *argv[]){
 	char *file = argv[1];
 	size_t size = 1024*1024*DEFAULT_SIZE;
 	int num_threads = DEFAULT_THREADS;
-	uint64_t num_create = -1;
+	uint64_t num_create = 0;
 
 	for (int i=2; i<argc; i++){
 		if(strcmp(argv[i], "-s") == 0){
@@ -49,7 +49,10 @@ int main(int argc, char *argv[]){
 	}
 	//making sure, it's correctly aligned
 	size = (size/EL_SIZE)*EL_SIZE;
-
+	if(size < EL_SIZE*num_threads*12){//each threads gets 3 blocks of at least 4 elements
+		printf("Buffer not big enough, aborting.\n");
+		return 11;
+	}
 
 	//allocate buffer
 	buffer = malloc(size);
