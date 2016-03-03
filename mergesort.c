@@ -40,48 +40,56 @@ int start(int fd, EL_TYPE *buffer, size_t size, int num_threads){
 	//4. use buffer, copy left data in buffer to original file
 
 	distribute_buffer(threads, num_threads, buffer, size);
-	print_threads(threads, num_threads, buffer);
+	print_threads(threads, num_threads, buffer, size);
 
+	printf("Starting simple sort...\n");
+
+	distribute_simple_sort(threads, num_threads, fd);
+
+	distribute_merge_sort(threads, num_threads, fd, fd_buffer);
 
 	return 0;
 }
 
+void print_threads(merge_thread* threads, int num_threads, EL_TYPE* buffer, size_t size){
+	printf("Format: size: <size in bytes> | <size in elements>, off: <offset in bytes> | <offset in elements>\n");
+	for(int i=0; i<num_threads; i++){
+		printf("Thread %i:\tBlock A: size: %zu | %zu, off: %lu | %lu\n", i, threads[i].sizea*EL_SIZE, threads[i].sizea, (threads[i].blocka-buffer)*EL_SIZE, threads[i].blocka-buffer);
+		printf("\t\tBlock B: size: %zu | %zu, off: %lu | %lu\n", threads[i].sizeb*EL_SIZE, threads[i].sizeb, (threads[i].blockb-buffer)*EL_SIZE, threads[i].blockb-buffer);
+		printf("\t\tBlock C: size: %zu | %zu, off: %lu | %lu\n", threads[i].sizec*EL_SIZE, threads[i].sizec, (threads[i].blockc-buffer)*EL_SIZE, threads[i].blockc-buffer);
+	}
+	printf("Cutoff: %zu elements\n\n", (buffer+size)-(threads[num_threads-1].blockc + threads[num_threads-1].sizec));
+}
+
 
 void distribute_buffer(merge_thread* threads, int num_threads, EL_TYPE *buffer, size_t size){
-
 	size_t default_size = size/num_threads;
 	size_t block_size = default_size/3;
-	block_size = (block_size/EL_SIZE)*EL_SIZE;
+	size_t block_size_c = default_size-2*block_size;
+
+	EL_TYPE* offset = buffer;
 
 	for(int i=0; i<num_threads; i++){
 		//block c has rest of this threads buffer
 		threads[i].sizea = block_size;
 		threads[i].sizeb = block_size;
-		threads[i].sizec = default_size-2*block_size;
-		threads[i].blocka = buffer;
-		threads[i].blockb = buffer+block_size;
-		threads[i].blockc = buffer+2*block_size;
+		threads[i].sizec = block_size_c;
+		threads[i].blocka = offset;
+		threads[i].blockb = offset+block_size;
+		threads[i].blockc = offset+2*block_size;
 
-		buffer += default_size;
+		offset += default_size;
 	}
+
+	threads[num_threads-1].sizec = (buffer+size)-threads[num_threads-1].blockc;
+}
+
+
+void distribute_simple_sort(merge_thread* threads, int num_threads, int fd){
 
 }
 
 
-void print_threads(merge_thread* threads, int num_threads, EL_TYPE* buffer){
-	printf("Format: size: <size in bytes> | <size in elements>, off: <offset in bytes> | <offset in elements>\n");
-	for(int i=0; i<num_threads; i++){
-		printf("Thread %i:\tBlock A: size: %zu | %zu, off: %lu | %lu\n", i, threads[i].sizea, threads[i].sizea/EL_SIZE, threads[i].blocka-buffer, (long) (threads[i].blocka-buffer)/EL_SIZE);
-		printf("\t\tBlock B: size: %zu | %zu, off: %lu | %lu\n", threads[i].sizeb, threads[i].sizeb/EL_SIZE, threads[i].blockb-buffer, (long) (threads[i].blockb-buffer)/EL_SIZE);
-		printf("\t\tBlock C: size: %zu | %zu, off: %lu | %lu\n", threads[i].sizec, threads[i].sizec/EL_SIZE, threads[i].blockc-buffer, (long) (threads[i].blockc-buffer)/EL_SIZE);
-	}
-}
-
-
-
-int simple_sort(int fd, uint64_t start_el, uint64_t end_el){
-
-
-
-	return 0;
+void distribute_merge_sort(merge_thread* threads, int num_threads, int fd, int fd_buffer){
+	
 }
