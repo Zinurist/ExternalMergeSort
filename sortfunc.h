@@ -1,3 +1,10 @@
 #include "std.h"
+#include <pthread.h>
 
-int simple_sort(int fd, uint64_t start_el, uint64_t end_el);
+typedef struct simple_arg{
+	uint64_t start_el; 
+	uint64_t end_el;
+	int fd;
+} simple_arg ;
+
+void * simple_sort(void* arg);

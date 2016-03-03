@@ -18,7 +18,7 @@ typedef struct merge_thread{
 int start(int fd, EL_TYPE *buffer, size_t size, int num_threads);
 void print_threads(merge_thread* threads, int num_threads, EL_TYPE* buffer, size_t size);
 void distribute_buffer(merge_thread* threads, int num_threads, EL_TYPE *buffer, size_t size);
-void distribute_simple_sort(merge_thread* threads, int num_threads, int fd);
-void distribute_merge_sort(merge_thread* threads, int num_threads, int fd, int fd_buffer);
+int distribute_simple_sort(merge_thread* threads, int num_threads, int fd, uint64_t num_elements);
+int distribute_merge_sort(merge_thread* threads, int num_threads, int fd, int fd_buffer, uint64_t num_elements);
 
 

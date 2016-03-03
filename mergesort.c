@@ -44,9 +44,15 @@ int start(int fd, EL_TYPE *buffer, size_t size, int num_threads){
 
 	printf("Starting simple sort...\n");
 
-	distribute_simple_sort(threads, num_threads, fd);
+	if(distribute_simple_sort(threads, num_threads, fd, num_elements)){
+		close(fd_buffer);
+		return 14;
+	}
 
-	distribute_merge_sort(threads, num_threads, fd, fd_buffer);
+	if(distribute_merge_sort(threads, num_threads, fd, fd_buffer, num_elements)){
+		close(fd_buffer);
+		return 15;
+	}
 
 	return 0;
 }
@@ -85,11 +91,62 @@ void distribute_buffer(merge_thread* threads, int num_threads, EL_TYPE *buffer, 
 }
 
 
-void distribute_simple_sort(merge_thread* threads, int num_threads, int fd){
+int distribute_simple_sort(merge_thread* threads, int num_threads, int fd, uint64_t num_elements){
 
+	//buffer_size for arguments
+	size_t buffer_size = sizeof(int)+2*sizeof(uint64_t);//for 1 thread
+
+	//calculating distribution of elements on threads
+	uint64_t pairs = num_elements/4;//simple sort sorts 4 elements
+	uint64_t el_per_thread = (pairs/num_threads)*4;//last thread has a few more, if not divisble
+	uint64_t el_rest = num_elements-(el_per_thread*num_threads);
+
+	//used when writing to thread buffer
+	uint64_t start_el = 0;
+	uint64_t end_el = 0;
+	uint64_t* buffer;
+
+	//create threads
+	int err;
+	for(int i=0; i<num_threads; i++){
+		start_el = end_el;
+		end_el = start_el+el_per_thread;
+		if(i == num_threads-1){
+			end_el += el_rest;
+		}
+
+		buffer = malloc(buffer_size);
+		if(buffer == NULL){
+			printf("Error when allocating thread buffer (simple sort): %s\n", strerror(errno));
+			return 1;
+		}
+		buffer[0] = start_el;
+		buffer[1] = end_el;
+		*((int*)(buffer+2)) = fd;
+
+		err = pthread_create(&threads[i].thread, NULL, &simple_sort, (void*)buffer);
+
+		if(err != 0){
+			printf("Error when creating thread %i (simple sort): %s\n", i, strerror(err));
+			return 1;
+		}
+	}
+
+	//join threads
+	for(int i=0; i<num_threads; i++){
+		err = pthread_join(threads[i].thread, NULL);
+
+		if(err != 0){
+			printf("Error when joining thread %i (simple sort): %s\n", i, strerror(err));
+			return 1;
+		}
+	}
+
+	return 0;
 }
 
 
-void distribute_merge_sort(merge_thread* threads, int num_threads, int fd, int fd_buffer){
-	
+int distribute_merge_sort(merge_thread* threads, int num_threads, int fd, int fd_buffer, uint64_t num_elements){
+
+	return 0;
 }
