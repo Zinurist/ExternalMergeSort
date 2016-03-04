@@ -1,4 +1,8 @@
+#ifndef SORTFUNC_H
+#define SORTFUNC_H
+
 #include "std.h"
+
 #include <pthread.h>
 
 typedef struct thread_info{
@@ -16,3 +20,6 @@ typedef struct simple_arg{
 } simple_arg ;
 
 void * simple_sort(void* arg);
+void quick_sort(EL_TYPE* buffer, size_t size);
+
+#endif

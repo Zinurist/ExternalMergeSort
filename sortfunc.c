@@ -8,24 +8,25 @@ void * simple_sort(void * arg){
 	thread_info* info = (thread_info*) arg;
 	simple_arg* bounds = (simple_arg*)info->data;
 
-	//assert: (end_el-start_el) % 4 = 0, unless its the last thread
+	//assert: (end_el-start_el) % SIMPLE_SORT_NUM = 0, unless its the last thread
 	//printf("%i, %lu, %lu\n", bounds->fd, bounds->start_el, bounds->end_el);
 
 	uint64_t size = info->end - info->blocka;
-	size = (size/4)*4; //pairs of 4 elements are sorted
+	size = (size/SIMPLE_SORT_NUM)*SIMPLE_SORT_NUM; //pairs of SIMPLE_SORT_NUM elements are sorted
 
 	uint64_t num_elements = bounds->end_el - bounds->start_el;
-	num_elements = (num_elements/4)*4;
 
-	if(num_elements%4 != 0){
+	if(num_elements%SIMPLE_SORT_NUM != 0){
 		//TODO enable sort of the last few elements
 	}
+	num_elements = (num_elements/SIMPLE_SORT_NUM)*SIMPLE_SORT_NUM;//TODO remove this
 
 
 	uint64_t runs = (num_elements/size)+1;
 	//add sizeof(uint64_t), because of number of elements at beginning of file
 	uint64_t offset = bounds->start_el*EL_SIZE+sizeof(uint64_t);
 	uint64_t limit = 0;
+	EL_TYPE* current_el = info->blocka;
 
 	for(int i=0; i<runs; i++){
 		if(num_elements>size){
@@ -47,9 +48,12 @@ void * simple_sort(void * arg){
 		//--------------------
 
 
-		//---sort---
-		//TODO
-		//----------
+		//---sorting---
+		for(int k=0; k<limit; k+=4){
+			quick_sort(current_el, SIMPLE_SORT_NUM);
+			current_el += 4;
+		}
+		//-------------
 
 
 
@@ -79,4 +83,9 @@ void * simple_sort(void * arg){
 
 	free(bounds);
 	return NULL;
+}
+
+
+void quick_sort(EL_TYPE* buffer, size_t size){
+
 }

@@ -1,6 +1,14 @@
+#ifndef MAIN_H
+#define MAIN_H
+
 #include "std.h"
 #include "mergesort.h"
 #include "generator.h"
+#include "sortfunc.h"
 
 #define DEFAULT_THREADS 4
 #define DEFAULT_SIZE 1024
+
+int main(int argc, char *argv[]);
+
+#endif

@@ -110,8 +110,8 @@ int distribute_simple_sort(merge_thread* threads, int num_threads, int fd, uint6
 	size_t buffer_size = sizeof(int)+2*sizeof(uint64_t);//for 1 thread
 
 	//calculating distribution of elements on threads
-	uint64_t pairs = num_elements/4;//simple sort sorts 4 elements
-	uint64_t el_per_thread = (pairs/num_threads)*4;//last thread has a few more, if not divisble
+	uint64_t pairs = num_elements/SIMPLE_SORT_NUM;//simple sort sorts SIMPLE_SORT_NUM elements
+	uint64_t el_per_thread = (pairs/num_threads)*SIMPLE_SORT_NUM;//last thread has a few more, if not divisble
 	uint64_t el_rest = num_elements-(el_per_thread*num_threads);
 
 	//used when writing to thread buffer
