@@ -6,10 +6,7 @@
 
 typedef struct merge_thread{
 	pthread_t thread;
-	EL_TYPE* blocka;//start, included
-	EL_TYPE* blockb;//end of blocka
-	EL_TYPE* blockc;//end of blockb
-	size_t sizea, sizeb, sizec;
+	thread_info info;
 } merge_thread;
 
 

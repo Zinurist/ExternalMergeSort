@@ -60,11 +60,11 @@ int start(int fd, EL_TYPE *buffer, size_t size, int num_threads){
 void print_threads(merge_thread* threads, int num_threads, EL_TYPE* buffer, size_t size){
 	printf("Format: size: <size in bytes> | <size in elements>, off: <offset in bytes> | <offset in elements>\n");
 	for(int i=0; i<num_threads; i++){
-		printf("Thread %i:\tBlock A: size: %zu | %zu, off: %lu | %lu\n", i, threads[i].sizea*EL_SIZE, threads[i].sizea, (threads[i].blocka-buffer)*EL_SIZE, threads[i].blocka-buffer);
-		printf("\t\tBlock B: size: %zu | %zu, off: %lu | %lu\n", threads[i].sizeb*EL_SIZE, threads[i].sizeb, (threads[i].blockb-buffer)*EL_SIZE, threads[i].blockb-buffer);
-		printf("\t\tBlock C: size: %zu | %zu, off: %lu | %lu\n", threads[i].sizec*EL_SIZE, threads[i].sizec, (threads[i].blockc-buffer)*EL_SIZE, threads[i].blockc-buffer);
+		printf("Thread %i:\tBlock A: size: %zu | %zu, off: %lu | %lu\n", i, threads[i].info.sizea*EL_SIZE, threads[i].info.sizea, (threads[i].info.blocka-buffer)*EL_SIZE, threads[i].info.blocka-buffer);
+		printf("\t\tBlock B: size: %zu | %zu, off: %lu | %lu\n", threads[i].info.sizeb*EL_SIZE, threads[i].info.sizeb, (threads[i].info.blockb-buffer)*EL_SIZE, threads[i].info.blockb-buffer);
+		printf("\t\tBlock C: size: %zu | %zu, off: %lu | %lu\n", threads[i].info.sizec*EL_SIZE, threads[i].info.sizec, (threads[i].info.blockc-buffer)*EL_SIZE, threads[i].info.blockc-buffer);
 	}
-	printf("Cutoff: %zu elements\n\n", (buffer+size)-(threads[num_threads-1].blockc + threads[num_threads-1].sizec));
+	printf("Cutoff: %zu elements\n\n", (buffer+size)-(threads[num_threads-1].info.blockc + threads[num_threads-1].info.sizec));
 }
 
 
@@ -77,17 +77,17 @@ void distribute_buffer(merge_thread* threads, int num_threads, EL_TYPE *buffer, 
 
 	for(int i=0; i<num_threads; i++){
 		//block c has rest of this threads buffer
-		threads[i].sizea = block_size;
-		threads[i].sizeb = block_size;
-		threads[i].sizec = block_size_c;
-		threads[i].blocka = offset;
-		threads[i].blockb = offset+block_size;
-		threads[i].blockc = offset+2*block_size;
+		threads[i].info.sizea = block_size;
+		threads[i].info.sizeb = block_size;
+		threads[i].info.sizec = block_size_c;
+		threads[i].info.blocka = offset;
+		threads[i].info.blockb = offset+block_size;
+		threads[i].info.blockc = offset+2*block_size;
 
 		offset += default_size;
 	}
 
-	threads[num_threads-1].sizec = (buffer+size)-threads[num_threads-1].blockc;
+	threads[num_threads-1].info.sizec = (buffer+size)-threads[num_threads-1].info.blockc;
 }
 
 
@@ -124,7 +124,8 @@ int distribute_simple_sort(merge_thread* threads, int num_threads, int fd, uint6
 		buffer[1] = end_el;
 		*((int*)(buffer+2)) = fd;
 
-		err = pthread_create(&threads[i].thread, NULL, &simple_sort, (void*)buffer);
+		threads[i].info.data = (void*)buffer;
+		err = pthread_create(&threads[i].thread, NULL, &simple_sort, &threads[i].info);
 
 		if(err != 0){
 			printf("Error when creating thread %i (simple sort): %s\n", i, strerror(err));
