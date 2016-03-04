@@ -13,7 +13,10 @@ int start(int fd, EL_TYPE *buffer, size_t size, int num_threads){
 
 	//--- Allocate buffer file ---
 	uint64_t num_elements;
-	read(fd, &num_elements, sizeof(uint64_t));
+	if(read(fd, &num_elements, sizeof(uint64_t)) <= sizeof(uint64_t)){
+		printf("Error when reading number of elements: %s\n",strerror(errno));
+		return 9;
+	}
 	printf("%llu elements to sort\n",(long long unsigned int)num_elements);
 
 	//create buffer file

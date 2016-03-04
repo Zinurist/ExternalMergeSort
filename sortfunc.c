@@ -38,7 +38,7 @@ void * simple_sort(void * arg){
 		pthread_mutex_lock(&file);
 
 		lseek(bounds->fd, offset, SEEK_SET);
-		if(read(bounds->fd, info->blocka, size*EL_SIZE) <=size*EL_SIZE){
+		if(read(bounds->fd, info->blocka, limit*EL_SIZE) <= limit*EL_SIZE){
 			printf("Error in simple sort while reading from file: %s\n", strerror(errno));
 			exit(20);
 		}
@@ -57,7 +57,7 @@ void * simple_sort(void * arg){
 		pthread_mutex_lock(&file);
 
 		lseek(bounds->fd, offset, SEEK_SET);
-		if(write(bounds->fd, info->blocka, limit*EL_SIZE) <=0){
+		if(write(bounds->fd, info->blocka, limit*EL_SIZE) <= limit*EL_SIZE){
 			printf("Error in simple sort while writing to file: %s\n", strerror(errno));
 			exit(21);
 		}
