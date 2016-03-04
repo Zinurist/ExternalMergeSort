@@ -68,7 +68,7 @@ void print_threads(merge_thread* threads, int num_threads, EL_TYPE* buffer, size
 		printf("\t\tBlock B: size: %zu | %zu, off: %lu | %lu\n", sizeb*EL_SIZE, sizeb, (threads[i].info.blockb-buffer)*EL_SIZE, threads[i].info.blockb-buffer);
 		printf("\t\tBlock C: size: %zu | %zu, off: %lu | %lu\n", sizec*EL_SIZE, sizec, (threads[i].info.blockc-buffer)*EL_SIZE, threads[i].info.blockc-buffer);
 	}
-	//printf("Cutoff: %zu elements\n\n", (buffer+size)-(threads[num_threads-1].info.blockc + threads[num_threads-1].info.sizec));
+
 }
 
 
@@ -81,9 +81,12 @@ void distribute_buffer(merge_thread* threads, int num_threads, EL_TYPE *buffer, 
 
 	for(int i=0; i<num_threads; i++){
 		//block c has rest of this threads buffer
+
+		//old from before commit 3c210e84b1a2dcf1e446181f88a3284f27df5955 
 		//threads[i].info.sizea = block_size;
 		//threads[i].info.sizeb = block_size;
 		//threads[i].info.sizec = block_size_c;
+
 		threads[i].info.blocka = offset;
 		threads[i].info.blockb = offset+block_size;
 		threads[i].info.blockc = offset+2*block_size;
@@ -92,6 +95,7 @@ void distribute_buffer(merge_thread* threads, int num_threads, EL_TYPE *buffer, 
 		offset += default_size;
 	}
 
+	//old from before commit 3c210e84b1a2dcf1e446181f88a3284f27df5955
 	//threads[num_threads-1].info.sizec = (buffer+size)-threads[num_threads-1].info.blockc;
 	threads[num_threads-1].info.end = buffer+size;
 }

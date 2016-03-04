@@ -1,10 +1,8 @@
 #include "generator.h"
 
 int generate(int fd, EL_TYPE *buffer, size_t size,  uint64_t num_create){
-	int written = 0;
-	written = write(fd, &num_create, sizeof(uint64_t));
 
-	if(written <=0 ){
+	if(write(fd, &num_create, sizeof(uint64_t)) <=0){
 		printf("Error in generate: %s\n", strerror(errno));
 		return 6;
 	}
@@ -31,9 +29,7 @@ int generate(int fd, EL_TYPE *buffer, size_t size,  uint64_t num_create){
 			buffer[offset+k] = rand();
 		}
 
-		written = write(fd, buffer, EL_SIZE*limit);
-
-		if(written <=0 ){
+		if(write(fd, buffer, EL_SIZE*limit) <=0 ){
 			printf("Error in generate: %s\n", strerror(errno));
 			return 7;
 		}
