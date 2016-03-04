@@ -58,13 +58,17 @@ int start(int fd, EL_TYPE *buffer, size_t size, int num_threads){
 }
 
 void print_threads(merge_thread* threads, int num_threads, EL_TYPE* buffer, size_t size){
+	size_t sizea, sizeb, sizec;
 	printf("Format: size: <size in bytes> | <size in elements>, off: <offset in bytes> | <offset in elements>\n");
 	for(int i=0; i<num_threads; i++){
-		printf("Thread %i:\tBlock A: size: %zu | %zu, off: %lu | %lu\n", i, threads[i].info.sizea*EL_SIZE, threads[i].info.sizea, (threads[i].info.blocka-buffer)*EL_SIZE, threads[i].info.blocka-buffer);
-		printf("\t\tBlock B: size: %zu | %zu, off: %lu | %lu\n", threads[i].info.sizeb*EL_SIZE, threads[i].info.sizeb, (threads[i].info.blockb-buffer)*EL_SIZE, threads[i].info.blockb-buffer);
-		printf("\t\tBlock C: size: %zu | %zu, off: %lu | %lu\n", threads[i].info.sizec*EL_SIZE, threads[i].info.sizec, (threads[i].info.blockc-buffer)*EL_SIZE, threads[i].info.blockc-buffer);
+		sizea = threads[i].info.blockb-threads[i].info.blocka;
+		sizeb = threads[i].info.blockc-threads[i].info.blockb;
+		sizec = threads[i].info.end   -threads[i].info.blockc;
+		printf("Thread %i:\tBlock A: size: %zu | %zu, off: %lu | %lu\n", i, sizea*EL_SIZE, sizea, (threads[i].info.blocka-buffer)*EL_SIZE, threads[i].info.blocka-buffer);
+		printf("\t\tBlock B: size: %zu | %zu, off: %lu | %lu\n", sizeb*EL_SIZE, sizeb, (threads[i].info.blockb-buffer)*EL_SIZE, threads[i].info.blockb-buffer);
+		printf("\t\tBlock C: size: %zu | %zu, off: %lu | %lu\n", sizec*EL_SIZE, sizec, (threads[i].info.blockc-buffer)*EL_SIZE, threads[i].info.blockc-buffer);
 	}
-	printf("Cutoff: %zu elements\n\n", (buffer+size)-(threads[num_threads-1].info.blockc + threads[num_threads-1].info.sizec));
+	//printf("Cutoff: %zu elements\n\n", (buffer+size)-(threads[num_threads-1].info.blockc + threads[num_threads-1].info.sizec));
 }
 
 
@@ -77,17 +81,19 @@ void distribute_buffer(merge_thread* threads, int num_threads, EL_TYPE *buffer, 
 
 	for(int i=0; i<num_threads; i++){
 		//block c has rest of this threads buffer
-		threads[i].info.sizea = block_size;
-		threads[i].info.sizeb = block_size;
-		threads[i].info.sizec = block_size_c;
+		//threads[i].info.sizea = block_size;
+		//threads[i].info.sizeb = block_size;
+		//threads[i].info.sizec = block_size_c;
 		threads[i].info.blocka = offset;
 		threads[i].info.blockb = offset+block_size;
 		threads[i].info.blockc = offset+2*block_size;
+		threads[i].info.end = offset+2*block_size+block_size_c;
 
 		offset += default_size;
 	}
 
-	threads[num_threads-1].info.sizec = (buffer+size)-threads[num_threads-1].info.blockc;
+	//threads[num_threads-1].info.sizec = (buffer+size)-threads[num_threads-1].info.blockc;
+	threads[num_threads-1].info.end = buffer+size;
 }
 
 

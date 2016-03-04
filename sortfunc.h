@@ -5,7 +5,7 @@ typedef struct thread_info{
 	EL_TYPE* blocka;//start, included
 	EL_TYPE* blockb;//end of blocka
 	EL_TYPE* blockc;//end of blockb
-	size_t sizea, sizeb, sizec;
+	EL_TYPE* end;
 	void* data;
 } thread_info ;
 
