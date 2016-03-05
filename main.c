@@ -67,8 +67,8 @@ int main(int argc, char *argv[]){
 	}
 
 	#ifdef _POSIX_MEMLOCK 
-	//lock all memory, preferably now after allocating biggest buffer
-	if(mlockall(MCL_FUTURE) !=0){
+	//lock buffer memory
+	if(mlock(buffer, size) !=0){
 		printf("Couldn't lock memory (%s). Pages might get swapped out. Still continue? (y/n, default: y)\n",strerror(errno));
 		ans = 'y';
 		scanf("%c", &ans);
