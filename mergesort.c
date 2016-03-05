@@ -2,6 +2,12 @@
 
 int start(int fd, EL_TYPE *buffer, size_t size, int num_threads){
 
+	//Init mutex
+	if(pthread_mutex_init(&file_lock, NULL) != 0){
+        printf("Error when initializing mutex: %s\n",strerror(errno));
+        return 55;
+    }
+
 	//--- Allocate threads ---
 	merge_thread* threads;
 	threads = malloc(sizeof(merge_thread) * num_threads);
@@ -13,7 +19,7 @@ int start(int fd, EL_TYPE *buffer, size_t size, int num_threads){
 
 	//--- Allocate buffer file ---
 	uint64_t num_elements;
-	if(read(fd, &num_elements, sizeof(uint64_t)) <= sizeof(uint64_t)){
+	if(read(fd, &num_elements, sizeof(uint64_t)) < sizeof(uint64_t)){
 		printf("Error when reading number of elements: %s\n",strerror(errno));
 		return 9;
 	}
@@ -38,7 +44,7 @@ int start(int fd, EL_TYPE *buffer, size_t size, int num_threads){
 	//----------------------------
 
 	//1. divide into regions for threads
-	//2. sort 4 elements normally
+	//2. sort SIMPLE_SORT_NUM elements using quicksort
 	//3. begin merge
 	//4. use buffer, copy left data in buffer to original file
 
@@ -106,9 +112,6 @@ void distribute_buffer(merge_thread* threads, int num_threads, EL_TYPE *buffer, 
 
 int distribute_simple_sort(merge_thread* threads, int num_threads, int fd, uint64_t num_elements){
 
-	//buffer_size for arguments
-	size_t buffer_size = sizeof(int)+2*sizeof(uint64_t);//for 1 thread
-
 	//calculating distribution of elements on threads
 	uint64_t pairs = num_elements/SIMPLE_SORT_NUM;//simple sort sorts SIMPLE_SORT_NUM elements
 	uint64_t el_per_thread = (pairs/num_threads)*SIMPLE_SORT_NUM;//last thread has a few more, if not divisble
@@ -117,7 +120,7 @@ int distribute_simple_sort(merge_thread* threads, int num_threads, int fd, uint6
 	//used when writing to thread buffer
 	uint64_t start_el = 0;
 	uint64_t end_el = 0;
-	uint64_t* buffer;
+	simple_arg* args;
 
 	//create threads
 	int err;
@@ -128,16 +131,16 @@ int distribute_simple_sort(merge_thread* threads, int num_threads, int fd, uint6
 			end_el += el_rest;
 		}
 
-		buffer = malloc(buffer_size);
-		if(buffer == NULL){
+		args = malloc(sizeof(simple_arg));
+		if(args == NULL){
 			printf("Error when allocating thread buffer (simple sort): %s\n", strerror(errno));
 			return 1;
 		}
-		buffer[0] = start_el;
-		buffer[1] = end_el;
-		*((int*)(buffer+2)) = fd;
+		args->start_el = start_el;
+		args->end_el = end_el;
+		args->fd = fd;
 
-		threads[i].info.data = (void*)buffer;
+		threads[i].info.data = (void*)args;
 		err = pthread_create(&threads[i].thread, NULL, &simple_sort, &threads[i].info);
 
 		if(err != 0){

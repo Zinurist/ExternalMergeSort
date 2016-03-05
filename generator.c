@@ -2,7 +2,7 @@
 
 int generate(int fd, EL_TYPE *buffer, size_t size,  uint64_t num_create){
 
-	if(write(fd, &num_create, sizeof(uint64_t)) <= sizeof(uint64_t)){
+	if(write(fd, &num_create, sizeof(uint64_t)) < sizeof(uint64_t)){
 		printf("Error in generate: %s\n", strerror(errno));
 		return 6;
 	}
@@ -29,7 +29,7 @@ int generate(int fd, EL_TYPE *buffer, size_t size,  uint64_t num_create){
 			buffer[offset+k] = rand();
 		}
 
-		if(write(fd, buffer, EL_SIZE*limit) <= EL_SIZE*limit){
+		if(write(fd, buffer, EL_SIZE*limit) < EL_SIZE*limit){
 			printf("Error in generate: %s\n", strerror(errno));
 			return 7;
 		}

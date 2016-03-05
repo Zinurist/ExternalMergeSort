@@ -7,9 +7,6 @@
 #include <sys/types.h>
 #include <pthread.h>
 
-#define EL_TYPE int
-#define EL_SIZE (sizeof(EL_TYPE))
-
 typedef struct merge_thread{
 	pthread_t thread;
 	thread_info info;

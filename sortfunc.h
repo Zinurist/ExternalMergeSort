@@ -5,6 +5,8 @@
 
 #include <pthread.h>
 
+extern pthread_mutex_t file_lock;
+
 typedef struct thread_info{
 	EL_TYPE* blocka;//start, included
 	EL_TYPE* blockb;//end of blocka
