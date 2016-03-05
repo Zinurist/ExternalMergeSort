@@ -5,7 +5,7 @@ int start(int fd, EL_TYPE *buffer, size_t size, int num_threads){
 	//Init mutex
 	if(pthread_mutex_init(&file_lock, NULL) != 0){
         printf("Error when initializing mutex: %s\n",strerror(errno));
-        return 55;
+        return 55;//schwifty-fyve
     }
 
 	//--- Allocate threads ---
@@ -20,7 +20,7 @@ int start(int fd, EL_TYPE *buffer, size_t size, int num_threads){
 	//--- Allocate buffer file ---
 	uint64_t num_elements;
 	if(read(fd, &num_elements, sizeof(uint64_t)) < sizeof(uint64_t)){
-		printf("Error when reading number of elements: %s\n",strerror(errno));
+		printf("Error when reading number of elements (start): %s\n",strerror(errno));
 		return 9;
 	}
 	printf("%llu elements to sort\n",(long long unsigned int)num_elements);
@@ -63,6 +63,7 @@ int start(int fd, EL_TYPE *buffer, size_t size, int num_threads){
 		return 15;
 	}
 
+	close(fd_buffer);
 	return 0;
 }
 
@@ -164,6 +165,8 @@ int distribute_simple_sort(merge_thread* threads, int num_threads, int fd, uint6
 
 
 int distribute_merge_sort(merge_thread* threads, int num_threads, int fd, int fd_buffer, uint64_t num_elements){
+	//reusing distribution data from simple sort!!
+
 
 	return 0;
 }

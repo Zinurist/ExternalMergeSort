@@ -2,23 +2,26 @@
 
 int main(int argc, char *argv[]){
 	
-	if(argc < 2 || (strcmp(argv[1], "-h")==0) || (strcmp(argv[1], "--help")==0) || argc&1 || argc>8){
+	if(argc < 2 || (strcmp(argv[1], "-h")==0) || (strcmp(argv[1], "--help")==0) || argc>8){
 		printf("Usage: mergesort <file> [options]\n");
 		printf("Options:\n");
-		printf("\t -c num : Fill file with num random values. Used for testing.\n");
+		printf("\t -r num : Fill file with num random values. Used for testing.\n");
+		printf("\t -c : Check if file is sorted. Used for testing.\n");
 		printf("\t -s num : Allocate num MB, used as buffer.\n");
 		printf("\t -sb num : Allocate num bytes, used as buffer.\n");
 		printf("\t -skb num : Allocate num KB, used as buffer.\n");
 		printf("\t -sgb num : Allocate num GB, used as buffer.\n");
 		printf("\t -t num : Create max num threads to sort/create.\n");
+		printf("-r overrules -c. -t is ignored if using -r/c.");
 		return -1;
 	}
 
 	char *buffer;
 	char *file = argv[1];
-	size_t size = 1024*1024*DEFAULT_SIZE;
+	uint64_t size = 1024*1024*DEFAULT_SIZE;
 	int num_threads = DEFAULT_THREADS;
 	uint64_t num_create = 0;
+	int check_sorted = 0;
 
 	for (int i=2; i<argc; i++){
 		if(strcmp(argv[i], "-s") == 0){
@@ -37,6 +40,8 @@ int main(int argc, char *argv[]){
 			i++;
 			num_threads = atoi(argv[i]);
 		}else if(strcmp(argv[i], "-c") == 0){
+			check_sorted = 1;
+		}else if(strcmp(argv[i], "-r") == 0){
 			i++;
 			num_create = strtoll(argv[i], NULL, 10);
 			if(num_create<=0){
@@ -87,7 +92,9 @@ int main(int argc, char *argv[]){
 
 	int err_code = 0;
 	//start routines
-	if(num_create>0){
+	if(check_sorted){
+		err_code = is_sorted(fd, (EL_TYPE*)buffer, size/EL_SIZE);
+	}else if(num_create>0){
 		err_code = generate(fd, (EL_TYPE*)buffer, size/EL_SIZE, num_create);
 	}else{
 		err_code = start(fd, (EL_TYPE*)buffer, size/EL_SIZE, num_threads);

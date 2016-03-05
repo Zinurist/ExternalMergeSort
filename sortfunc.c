@@ -4,14 +4,13 @@ pthread_mutex_t file_lock;
 
 void * simple_sort(void * arg){
 
-
 	thread_info* info = (thread_info*) arg;
 	simple_arg* bounds = (simple_arg*)info->data;
 
 	//assert: (end_el-start_el) % SIMPLE_SORT_NUM = 0, unless its the last thread
 	//printf("%i, %lu, %lu\n", bounds->fd, bounds->start_el, bounds->end_el);
 
-	uint64_t size = info->end - info->blocka;
+	size_t size = info->end - info->blocka;
 	size = (size/SIMPLE_SORT_NUM)*SIMPLE_SORT_NUM; //pairs of SIMPLE_SORT_NUM elements are sorted
 
 	uint64_t num_elements = bounds->end_el - bounds->start_el;
@@ -28,7 +27,7 @@ void * simple_sort(void * arg){
 	uint64_t limit = 0;
 	EL_TYPE* current_el;
 
-	for(int i=0; i<runs; i++){
+	for(uint64_t i=0; i<runs; i++){
 		if(num_elements >= size){
 			limit = size;
 		}else{
@@ -77,7 +76,8 @@ void * simple_sort(void * arg){
 	}
 
 
-	free(bounds);
+	//important: dont free this yet, it will be used for the merge phase!!
+	//free(bounds);
 	return NULL;
 }
 
@@ -114,9 +114,59 @@ void quick_sort(EL_TYPE* buffer, size_t size){
 			*right = tmp;
 		}
 
-
 	}
 
+}
 
 
+
+
+void * merge_sort(void* arg){
+
+	thread_info* info = (thread_info*) arg;
+
+
+	return NULL;
+}
+
+
+
+
+int is_sorted(int fd, EL_TYPE *buffer, size_t size){
+
+	uint64_t num_elements;
+	if(read(fd, &num_elements, sizeof(uint64_t)) < sizeof(uint64_t)){
+		printf("Error when reading number of elements (is_sorted): %s\n",strerror(errno));
+		return 61;
+	}
+
+	uint64_t runs = (num_elements/size)+1;
+
+	uint64_t limit;
+
+	for(uint64_t i=0; i<runs; i++){
+		if(num_elements >= size){
+			limit = size;
+		}else{
+			limit = num_elements;
+			if(limit == 0) break;
+		}
+
+		if(read(fd, buffer, EL_SIZE*limit) < EL_SIZE*limit){
+			printf("Error in is_sorted while reading: %s\n", strerror(errno));
+			return 7;
+		}
+
+		for(uint64_t k = 1; k<limit; k++){
+			if(buffer[k-1] > buffer[k]){
+				printf("Not sorted! (at %zu)\n", i*size+k);
+				return 0;
+			}
+		}
+
+		num_elements -= limit;
+	}
+
+	printf("Sorted!\n");
+	return 0;
 }

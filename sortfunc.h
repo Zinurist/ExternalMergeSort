@@ -23,5 +23,8 @@ typedef struct simple_arg{
 
 void * simple_sort(void* arg);
 void quick_sort(EL_TYPE* buffer, size_t size);
+void * merge_sort(void* arg);
+
+int is_sorted(int fd, EL_TYPE *buffer, size_t size);
 
 #endif
