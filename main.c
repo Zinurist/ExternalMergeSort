@@ -22,6 +22,7 @@ int main(int argc, char *argv[]){
 	int num_threads = DEFAULT_THREADS;
 	uint64_t num_create = 0;
 	int check_sorted = 0;
+	char ans;//used when asking for continue
 
 	for (int i=2; i<argc; i++){
 		if(strcmp(argv[i], "-s") == 0){
@@ -65,16 +66,28 @@ int main(int argc, char *argv[]){
 		return 2;
 	}
 
+	#ifdef _POSIX_MEMLOCK 
+	//lock all memory, preferably now after allocating biggest buffer
+	if(mlockall(MCL_FUTURE) !=0){
+		printf("Couldn't lock memory (%s). Pages might get swapped out. Still continue? (y/n, default: y)\n",strerror(errno));
+		ans = 'y';
+		scanf("%c", &ans);
+		if(ans != 'y' && ans != 'Y'){
+			printf("Aborting.\n");
+			return 0;
+		}
+	}
+	#endif
 
 	//open file
 	int fd = -1;
 	if(num_create>0){
 		if(num_create >= (1024*1024*1024)/EL_SIZE){
-			char ans = 'n';
+			ans = 'n';
 			printf("This will create a file of %.2f Gbyte, continue? (y/n, default: n) ", 
 				EL_SIZE*num_create/(1024.0*1024.0*1024.0));
 			scanf("%c", &ans);
-			if(ans != 'y'){
+			if(ans != 'y' && ans != 'Y'){
 				printf("Aborting.\n");
 				return 0;
 			}

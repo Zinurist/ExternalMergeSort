@@ -6,6 +6,8 @@
 #include "generator.h"
 #include "sortfunc.h"
 
+#include <sys/mman.h>
+
 #define DEFAULT_THREADS 4
 #define DEFAULT_SIZE 1024
 
