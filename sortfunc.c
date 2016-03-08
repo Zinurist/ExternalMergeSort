@@ -15,13 +15,11 @@ void * simple_sort(void * arg){
 
 	uint64_t num_elements = bounds->end_el - bounds->start_el;
 
-	if(num_elements%SIMPLE_SORT_NUM != 0){
-		//TODO enable sort of the last few elements
-	}
-	num_elements = (num_elements/SIMPLE_SORT_NUM)*SIMPLE_SORT_NUM;//TODO remove this
+	//num of elements that fit into pairs
+	uint64_t num_el_fit = (num_elements/SIMPLE_SORT_NUM)*SIMPLE_SORT_NUM;
 
 
-	uint64_t runs = (num_elements/size)+1;
+	uint64_t runs = (num_el_fit/size)+1;
 	//add sizeof(uint64_t), because of number of elements at beginning of file
 	uint64_t offset = bounds->start_el*EL_SIZE+sizeof(uint64_t);
 	uint64_t limit = 0;
@@ -50,10 +48,18 @@ void * simple_sort(void * arg){
 
 
 		//---sorting---
-		for(int k=0; k<limit; k+=SIMPLE_SORT_NUM){
-			quick_sort(current_el, SIMPLE_SORT_NUM);
+		int num_to_sort;
+		for(int k=limit; k>0; k -= num_to_sort){
+			//k is the amount of elements in the buffer, that still need to be sorted
+			//instead of count from 0 to limit, count the other way -> no subtracting in the if-clause below needed
+
+			//if+else should be faster than modulo
+			//num_to_sort = limit % SIMPLE_SORT_NUM;
+			if(k < SIMPLE_SORT_NUM)	num_to_sort = k;
+			else 					num_to_sort = SIMPLE_SORT_NUM;
+			quick_sort(current_el, num_to_sort);
 			//printf("after: %x, %x, %x, %x\n", current_el[0],current_el[1],current_el[2],current_el[3]);
-			current_el += SIMPLE_SORT_NUM;
+			current_el += num_to_sort;
 		}
 		//-------------
 
