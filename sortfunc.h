@@ -21,6 +21,17 @@ typedef struct simple_arg{
 	int fd;
 } simple_arg ;
 
+typedef struct merge_phase{
+	uint64_t start_el_a;
+	uint64_t end_el_a;
+	uint64_t start_el_b;
+	uint64_t end_el_b;
+	uint64_t start_buffer;
+	uint64_t end_buffer;
+	int fd;
+	int fd_buffer;
+} merge_phase;
+
 void * simple_sort(void* arg);
 void quick_sort(EL_TYPE* buffer, size_t size);
 void * merge_sort(void* arg);
