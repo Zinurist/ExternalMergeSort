@@ -7,30 +7,24 @@
 
 extern pthread_mutex_t file_lock;
 
+typedef struct sort_data{
+	uint64_t start_from_a;
+	uint64_t start_from_b;
+	uint64_t end_from;
+	uint64_t start_to;
+	int fd_from;
+	int fd_to;
+} sort_data;
+
 typedef struct thread_info{
 	EL_TYPE* blocka;//start, included
 	EL_TYPE* blockb;//end of blocka
 	EL_TYPE* blockc;//end of blockb
 	EL_TYPE* end;
-	void* data;
-} thread_info ;
+	sort_data data;
+} thread_info;
 
-typedef struct simple_arg{
-	uint64_t start_el; 
-	uint64_t end_el;
-	int fd;
-} simple_arg ;
 
-typedef struct merge_phase{
-	uint64_t start_el_a;
-	uint64_t end_el_a;
-	uint64_t start_el_b;
-	uint64_t end_el_b;
-	uint64_t start_buffer;
-	uint64_t end_buffer;
-	int fd;
-	int fd_buffer;
-} merge_phase;
 
 void * simple_sort(void* arg);
 void quick_sort(EL_TYPE* buffer, size_t size);

@@ -59,16 +59,30 @@ int main(int argc, char *argv[]){
 		return 11;
 	}
 
-	//allocate buffer
+
+	//--- Allocate buffer ---
 	buffer = malloc(size);
 	if(!buffer){
 		printf("Error: Couldn't allocate enough memory!\n");
 		return 2;
 	}
+	//-----------------------
+
+	//--- Allocate threads ---
+	merge_thread* threads = NULL;
+	//checking for multithreading here,
+	if( !(num_create>0 || check_sorted) ){
+		threads = malloc(sizeof(merge_thread) * num_threads);
+		if(!threads){
+			printf("Error when allocating threads: %s\n",strerror(errno));
+			return 8;
+		}
+	}
+	//------------------------
 
 	#ifdef _POSIX_MEMLOCK 
 	//lock buffer memory
-	if(mlock(buffer, size) !=0){
+	if( (mlock(buffer, size)) & (mlock(threads,size)) ){
 		printf("Couldn't lock memory (%s). Pages might get swapped out. Still continue? (y/n, default: y)\n",strerror(errno));
 		ans = 'y';
 		scanf("%c", &ans);
@@ -110,7 +124,7 @@ int main(int argc, char *argv[]){
 	}else if(num_create>0){
 		err_code = generate(fd, (EL_TYPE*)buffer, size/EL_SIZE, num_create);
 	}else{
-		err_code = start(fd, (EL_TYPE*)buffer, size/EL_SIZE, num_threads);
+		err_code = start(fd, (EL_TYPE*)buffer, size/EL_SIZE, threads, num_threads);
 	}
 
 	close(fd);

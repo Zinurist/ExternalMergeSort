@@ -5,15 +5,13 @@ pthread_mutex_t file_lock;
 void * simple_sort(void * arg){
 
 	thread_info* info = (thread_info*) arg;
-	simple_arg* bounds = (simple_arg*)info->data;
 
 	//assert: (end_el-start_el) % SIMPLE_SORT_NUM = 0, unless its the last thread
-	//printf("%i, %lu, %lu\n", bounds->fd, bounds->start_el, bounds->end_el);
 
 	size_t size = info->end - info->blocka;
 	size = (size/SIMPLE_SORT_NUM)*SIMPLE_SORT_NUM; //pairs of SIMPLE_SORT_NUM elements are sorted
 
-	uint64_t num_elements = bounds->end_el - bounds->start_el;
+	uint64_t num_elements = (info->data.end_from - info->data.start_from_a)/EL_SIZE;
 
 	//num of elements that fit into pairs
 	uint64_t num_el_fit = (num_elements/SIMPLE_SORT_NUM)*SIMPLE_SORT_NUM;
@@ -21,7 +19,8 @@ void * simple_sort(void * arg){
 
 	uint64_t runs = (num_el_fit/size)+1;
 	//add sizeof(uint64_t), because of number of elements at beginning of file
-	uint64_t offset = bounds->start_el*EL_SIZE+sizeof(uint64_t);
+	uint64_t offset_from = info->data.start_from_a;
+	uint64_t offset_to = info->data.start_to;
 	uint64_t limit = 0;
 	EL_TYPE* current_el;
 
@@ -36,8 +35,8 @@ void * simple_sort(void * arg){
 		//---read from file---
 		pthread_mutex_lock(&file_lock);
 
-		lseek(bounds->fd, offset, SEEK_SET);
-		if(read(bounds->fd, info->blocka, limit*EL_SIZE) < limit*EL_SIZE){
+		lseek(info->data.fd_from, offset_from, SEEK_SET);
+		if(read(info->data.fd_from, info->blocka, limit*EL_SIZE) < limit*EL_SIZE){
 			printf("Error in simple sort while reading from file: %s\n", strerror(errno));
 			exit(20);
 		}
@@ -68,8 +67,8 @@ void * simple_sort(void * arg){
 		//---write to file---
 		pthread_mutex_lock(&file_lock);
 
-		lseek(bounds->fd, offset, SEEK_SET);
-		if(write(bounds->fd, info->blocka, limit*EL_SIZE) < limit*EL_SIZE){
+		lseek(info->data.fd_to, offset_to, SEEK_SET);
+		if(write(info->data.fd_to, info->blocka, limit*EL_SIZE) < limit*EL_SIZE){
 			printf("Error in simple sort while writing to file: %s\n", strerror(errno));
 			exit(21);
 		}
@@ -77,13 +76,12 @@ void * simple_sort(void * arg){
 		pthread_mutex_unlock(&file_lock);
 		//-------------------
 
-		offset += limit*EL_SIZE;
+		offset_from += limit*EL_SIZE;
+		offset_to += limit*EL_SIZE;
 		num_elements -= limit;
 	}
 
 
-	//important: dont free this yet, it will be used for the merge phase!!
-	//free(bounds);
 	return NULL;
 }
 
@@ -129,7 +127,7 @@ void quick_sort(EL_TYPE* buffer, size_t size){
 
 void * merge_sort(void* arg){
 
-	thread_info* info = (thread_info*) arg;
+	//thread_info* info = (thread_info*) arg;
 
 
 	return NULL;

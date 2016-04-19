@@ -13,6 +13,6 @@
 
 #define EL_TYPE unsigned char //needs to be comparable using > < >= <=
 #define EL_SIZE (sizeof(EL_TYPE))
-#define SIMPLE_SORT_NUM 4 //needs to be >0
+#define SIMPLE_SORT_NUM 8 //needs to be >0
 
 #endif

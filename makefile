@@ -1,6 +1,6 @@
 CC=gcc
 CFLAGS= -c -Wall -std=gnu99
-LDLIBS= -lpthread
+LDLIBS= -lpthread -lm
 SOURCES=main.c mergesort.c generator.c sortfunc.c
 OBJECTS=$(SOURCES:.c=.o)
 EXECUTABLE=mergesort

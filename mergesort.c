@@ -1,21 +1,12 @@
 #include "mergesort.h"
 
-int start(int fd, EL_TYPE *buffer, size_t size, int num_threads){
+int start(int fd, EL_TYPE *buffer, size_t size, merge_thread* threads, int num_threads){
 
 	//Init mutex
 	if(pthread_mutex_init(&file_lock, NULL) != 0){
         printf("Error when initializing mutex: %s\n",strerror(errno));
         return 55;//schwifty-fyve
     }
-
-	//--- Allocate threads ---
-	merge_thread* threads;
-	threads = malloc(sizeof(merge_thread) * num_threads);
-	if(threads == NULL){
-		printf("Error when allocating threads: %s\n",strerror(errno));
-		return 8;
-	}
-	//------------------------
 
 	//--- Allocate buffer file ---
 	uint64_t num_elements;
@@ -53,7 +44,7 @@ int start(int fd, EL_TYPE *buffer, size_t size, int num_threads){
 
 	printf("Starting simple sort...\n");
 
-	if(distribute_simple_sort(threads, num_threads, fd, num_elements)){
+	if(distribute_simple_sort(threads, num_threads, fd, fd_buffer, num_elements)){
 		close(fd_buffer);
 		return 14;
 	}
@@ -111,17 +102,22 @@ void distribute_buffer(merge_thread* threads, int num_threads, EL_TYPE *buffer, 
 }
 
 
-int distribute_simple_sort(merge_thread* threads, int num_threads, int fd, uint64_t num_elements){
+int distribute_simple_sort(merge_thread* threads, int num_threads, int fd, int fd_buffer, uint64_t num_elements){
 
 	//calculating distribution of elements on threads
 	uint64_t pairs = num_elements/SIMPLE_SORT_NUM;//simple sort sorts SIMPLE_SORT_NUM elements
 	uint64_t el_per_thread = (pairs/num_threads)*SIMPLE_SORT_NUM;//last thread has a few more, if not divisble
 	uint64_t el_rest = num_elements-(el_per_thread*num_threads);
 
+	//calculating number of merge phases, needed to determine correct file buffer
+	//ld(pairs) = depth of merge tree
+	if(num_elements%SIMPLE_SORT_NUM !=0) pairs++;
+	int even = ceil(log(pairs)/log(2));
+	even = even%2;
+
 	//used when writing to thread buffer
 	uint64_t start_el = 0;
 	uint64_t end_el = 0;
-	simple_arg* args;
 
 	//create threads
 	int err;
@@ -132,16 +128,18 @@ int distribute_simple_sort(merge_thread* threads, int num_threads, int fd, uint6
 			end_el += el_rest;
 		}
 
-		args = malloc(sizeof(simple_arg));
-		if(args == NULL){
-			printf("Error when allocating thread buffer (simple sort): %s\n", strerror(errno));
-			return 1;
-		}
-		args->start_el = start_el;
-		args->end_el = end_el;
-		args->fd = fd;
 
-		threads[i].info.data = (void*)args;
+		threads[i].info.data.start_from_a = start_el*EL_SIZE+sizeof(uint64_t);
+		threads[i].info.data.end_from = end_el*EL_SIZE+sizeof(uint64_t);
+		threads[i].info.data.fd_from = fd;
+		if(even){
+			threads[i].info.data.start_to = start_el*EL_SIZE;
+			threads[i].info.data.fd_to = fd_buffer;
+		}else{
+			threads[i].info.data.start_to = start_el*EL_SIZE+sizeof(uint64_t);
+			threads[i].info.data.fd_to = fd;
+		}
+
 		err = pthread_create(&threads[i].thread, NULL, &simple_sort, &threads[i].info);
 
 		if(err != 0){
