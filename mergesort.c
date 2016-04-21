@@ -49,6 +49,8 @@ int start(int fd, EL_TYPE *buffer, size_t size, merge_thread* threads, int num_t
 		return 14;
 	}
 
+	printf("Starting merge sort...\n");
+
 	if(distribute_merge_sort(threads, num_threads, fd, fd_buffer, num_elements)){
 		close(fd_buffer);
 		return 15;
@@ -60,7 +62,7 @@ int start(int fd, EL_TYPE *buffer, size_t size, merge_thread* threads, int num_t
 
 void print_threads(merge_thread* threads, int num_threads, EL_TYPE* buffer, size_t size){
 	size_t sizea, sizeb, sizec;
-	printf("Format: size: <size in bytes> | <size in elements>, off: <offset in bytes> | <offset in elements>\n");
+	printf("\nFormat: size: <size in bytes> | <size in elements>, off: <offset in bytes> | <offset in elements>\n");
 	for(int i=0; i<num_threads; i++){
 		sizea = threads[i].info.blockb-threads[i].info.blocka;
 		sizeb = threads[i].info.blockc-threads[i].info.blockb;
@@ -69,7 +71,23 @@ void print_threads(merge_thread* threads, int num_threads, EL_TYPE* buffer, size
 		printf("\t\tBlock B: size: %zu | %zu, off: %lu | %lu\n", sizeb*EL_SIZE, sizeb, (threads[i].info.blockb-buffer)*EL_SIZE, threads[i].info.blockb-buffer);
 		printf("\t\tBlock C: size: %zu | %zu, off: %lu | %lu\n", sizec*EL_SIZE, sizec, (threads[i].info.blockc-buffer)*EL_SIZE, threads[i].info.blockc-buffer);
 	}
+	printf("\n");
 
+}
+
+void print_thread_data(merge_thread* threads, int num_threads, int swap){
+	if(swap) printf("\ntemporary -> original\n");
+	else printf("\noriginal -> temporary\n");
+
+	for(int i=0; i<num_threads; i++){
+		printf("Thread %i: ",i);
+		
+		printf("\tstart A: %lu, start B: %lu, end: %lu\n", threads[i].info.data.start_from_a, threads[i].info.data.start_from_b, threads[i].info.data.end_from);
+		printf("\t\tto: %lu\n", threads[i].info.data.start_to);
+		printf("\t\tblock_size: %lu, pairs: %lu\n", threads[i].info.data.block_size, threads[i].info.data.pairs);
+
+	}
+	printf("\n");
 }
 
 
@@ -164,7 +182,88 @@ int distribute_simple_sort(merge_thread* threads, int num_threads, int fd, int f
 
 int distribute_merge_sort(merge_thread* threads, int num_threads, int fd, int fd_buffer, uint64_t num_elements){
 	//reusing distribution data from simple sort!!
+	uint64_t block_size = SIMPLE_SORT_NUM;
+	uint64_t pairs, pairs_per_thread, start, end;
 
+	int num_runs = ceil(log(num_elements/(double)SIMPLE_SORT_NUM)/log(2));
+	printf("%i merge run(s)\n", num_runs);
+
+	int swap = num_runs%2;
+
+	//runs
+	int err;
+	for(int run=0; run<num_runs; run++){
+		pairs = (num_elements-1)/block_size +1;
+		pairs = pairs/2;
+
+		if(pairs < num_threads){
+			num_threads = pairs;
+		}
+		printf("\nStarting run %i: %lu elements/block, %i thread(s)\n", run, block_size, num_threads);
+
+		pairs_per_thread = pairs/num_threads;
+		//printf("%lu pairs, %lu per thread\n", pairs, pairs_per_thread);
+
+		end = 0;
+		//create threads
+		for(int i=0; i<num_threads; i++){
+
+			//create merge data
+			start = end;
+			if(i==num_threads-1){
+				end = num_elements;
+			}else{
+				end = start + pairs_per_thread*2*block_size;
+			}
+			//printf("thread %i: start=%lu, end=%lu\n", i, start, end);
+
+			threads[i].info.data.block_size = block_size;
+			threads[i].info.data.pairs = pairs_per_thread;
+			if(swap){
+				//fd_buffer->fd
+				threads[i].info.data.start_from_a = start;
+				threads[i].info.data.start_from_b = threads[i].info.data.start_from_a + block_size;
+				threads[i].info.data.end_from = end;
+				threads[i].info.data.start_to = start + sizeof(uint64_t);
+				
+				threads[i].info.data.fd_from = fd_buffer;
+				threads[i].info.data.fd_to = fd;
+				
+			}else{
+				//fd->fd_buffer
+				threads[i].info.data.start_from_a = start + sizeof(uint64_t);
+				threads[i].info.data.start_from_b = threads[i].info.data.start_from_a + block_size;
+				threads[i].info.data.end_from = end + sizeof(uint64_t);
+				threads[i].info.data.start_to = start;
+				
+				threads[i].info.data.fd_from = fd;
+				threads[i].info.data.fd_to = fd_buffer;
+				
+			}
+
+			err = pthread_create(&threads[i].thread, NULL, &merge_sort, &threads[i].info);
+
+			if(err != 0){
+				printf("Error when creating thread %i (merge phase %i): %s\n", i, run, strerror(err));
+				return 60;
+			}
+		}
+
+		print_thread_data(threads, num_threads, swap);
+
+		//join threads
+		for(int i=0; i<num_threads; i++){
+			err = pthread_join(threads[i].thread, NULL);
+
+			if(err != 0){
+				printf("Error when joining thread %i (merge phase %i): %s\n", i, run, strerror(err));
+				return 61;
+			}
+		}
+
+		swap = !swap;
+		block_size += block_size;
+	}
 
 	return 0;
 }

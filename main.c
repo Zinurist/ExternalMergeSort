@@ -128,5 +128,7 @@ int main(int argc, char *argv[]){
 	}
 
 	close(fd);
+
+	printf("All done!\n");
 	return err_code;
 }

@@ -9,7 +9,7 @@
 #include <sys/mman.h>
 
 #define DEFAULT_THREADS 4
-#define DEFAULT_SIZE 1024
+#define DEFAULT_SIZE 16
 
 int main(int argc, char *argv[]);
 
