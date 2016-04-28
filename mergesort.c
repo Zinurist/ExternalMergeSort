@@ -42,14 +42,14 @@ int start(int fd, EL_TYPE *buffer, size_t size, merge_thread* threads, int num_t
 	distribute_buffer(threads, num_threads, buffer, size);
 	print_threads(threads, num_threads, buffer, size);
 
-	printf("Starting simple sort...\n");
+	fprintf(stderr,"Starting simple sort...\n");
 
 	if(distribute_simple_sort(threads, num_threads, fd, fd_buffer, num_elements)){
 		close(fd_buffer);
 		return 14;
 	}
 
-	printf("Starting merge sort...\n");
+	fprintf(stderr,"Starting merge sort...\n");
 
 	if(distribute_merge_sort(threads, num_threads, fd, fd_buffer, num_elements)){
 		close(fd_buffer);
@@ -62,32 +62,32 @@ int start(int fd, EL_TYPE *buffer, size_t size, merge_thread* threads, int num_t
 
 void print_threads(merge_thread* threads, int num_threads, EL_TYPE* buffer, size_t size){
 	size_t sizea, sizeb, sizec;
-	printf("\nFormat: size: <size in bytes> | <size in elements>, off: <offset in bytes> | <offset in elements>\n");
+	fprintf(stderr,"\nFormat: size: <size in bytes> | <size in elements>, off: <offset in bytes> | <offset in elements>\n");
 	for(int i=0; i<num_threads; i++){
 		sizea = threads[i].info.blockb-threads[i].info.blocka;
 		sizeb = threads[i].info.blockc-threads[i].info.blockb;
 		sizec = threads[i].info.end   -threads[i].info.blockc;
-		printf("Thread %i:\tBlock A: size: %zu | %zu, off: %lu | %lu\n", i, sizea*EL_SIZE, sizea, (threads[i].info.blocka-buffer)*EL_SIZE, threads[i].info.blocka-buffer);
-		printf("\t\tBlock B: size: %zu | %zu, off: %lu | %lu\n", sizeb*EL_SIZE, sizeb, (threads[i].info.blockb-buffer)*EL_SIZE, threads[i].info.blockb-buffer);
-		printf("\t\tBlock C: size: %zu | %zu, off: %lu | %lu\n", sizec*EL_SIZE, sizec, (threads[i].info.blockc-buffer)*EL_SIZE, threads[i].info.blockc-buffer);
+		fprintf(stderr,"Thread %i:\tBlock A: size: %zu | %zu, off: %lu | %lu\n", i, sizea*EL_SIZE, sizea, (threads[i].info.blocka-buffer)*EL_SIZE, threads[i].info.blocka-buffer);
+		fprintf(stderr,"\t\tBlock B: size: %zu | %zu, off: %lu | %lu\n", sizeb*EL_SIZE, sizeb, (threads[i].info.blockb-buffer)*EL_SIZE, threads[i].info.blockb-buffer);
+		fprintf(stderr,"\t\tBlock C: size: %zu | %zu, off: %lu | %lu\n", sizec*EL_SIZE, sizec, (threads[i].info.blockc-buffer)*EL_SIZE, threads[i].info.blockc-buffer);
 	}
-	printf("\n");
+	fprintf(stderr,"\n");
 
 }
 
 void print_thread_data(merge_thread* threads, int num_threads, int swap){
-	if(swap) printf("\ntemporary -> original\n");
-	else printf("\noriginal -> temporary\n");
+	if(swap) fprintf(stderr,"\ntemporary -> original\n");
+	else fprintf(stderr,"\noriginal -> temporary\n");
 
 	for(int i=0; i<num_threads; i++){
-		printf("Thread %i: ",i);
+		fprintf(stderr,"Thread %i: ",i);
 		
-		printf("\tstart A: %lu, start B: %lu, end: %lu\n", threads[i].info.data.start_from_a, threads[i].info.data.start_from_b, threads[i].info.data.end_from);
-		printf("\t\tto: %lu\n", threads[i].info.data.start_to);
-		printf("\t\tblock_size: %lu, pairs: %lu\n", threads[i].info.data.block_size, threads[i].info.data.pairs);
+		fprintf(stderr,"\tstart A: %lu, start B: %lu, end: %lu\n", threads[i].info.data.start_from_a, threads[i].info.data.start_from_b, threads[i].info.data.end_from);
+		fprintf(stderr,"\t\tto: %lu\n", threads[i].info.data.start_to);
+		fprintf(stderr,"\t\tblock_size: %lu, pairs: %lu\n", threads[i].info.data.block_size, threads[i].info.data.pairs);
 
 	}
-	printf("\n");
+	fprintf(stderr,"\n");
 }
 
 
@@ -186,7 +186,7 @@ int distribute_merge_sort(merge_thread* threads, int num_threads, int fd, int fd
 	uint64_t pairs, pairs_per_thread, start, end;
 
 	int num_runs = ceil(log(num_elements/(double)SIMPLE_SORT_NUM)/log(2));
-	printf("%i merge run(s)\n", num_runs);
+	fprintf(stderr,"%i merge run(s)\n", num_runs);
 
 	int swap = num_runs%2;
 
@@ -199,7 +199,7 @@ int distribute_merge_sort(merge_thread* threads, int num_threads, int fd, int fd
 		if(pairs < num_threads){
 			num_threads = pairs;
 		}
-		printf("\nStarting run %i: %lu elements/block, %i thread(s)\n", run, block_size, num_threads);
+		fprintf(stderr,"\nStarting run %i: %lu elements/block, %i thread(s)\n", run, block_size, num_threads);
 
 		pairs_per_thread = pairs/num_threads;
 		//printf("%lu pairs, %lu per thread\n", pairs, pairs_per_thread);
