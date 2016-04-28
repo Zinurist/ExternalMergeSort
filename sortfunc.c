@@ -11,6 +11,7 @@ void * simple_sort(void * arg){
 	size_t size = info->end - info->blocka;
 	size = (size/SIMPLE_SORT_NUM)*SIMPLE_SORT_NUM; //pairs of SIMPLE_SORT_NUM elements are sorted
 
+	//TODO store this part in data.block_size/pairs during distribution of simplesort
 	uint64_t num_elements = (info->data.end_from - info->data.start_from_a)/EL_SIZE;
 
 	//num of elements that fit into pairs
@@ -18,6 +19,8 @@ void * simple_sort(void * arg){
 
 
 	uint64_t runs = (num_el_fit/size)+1;
+	//TODO
+
 	//add sizeof(uint64_t), because of number of elements at beginning of file
 	uint64_t offset_from = info->data.start_from_a;
 	uint64_t offset_to = info->data.start_to;
@@ -127,7 +130,142 @@ void quick_sort(EL_TYPE* buffer, size_t size){
 
 void * merge_sort(void* arg){
 
-	//thread_info* info = (thread_info*) arg;
+	thread_info* info = (thread_info*) arg;
+
+	uint64_t el_per_merge = info->data.block_size*2;
+	uint64_t offset_from_a = info->data.start_from_a;
+	uint64_t offset_from_b = info->data.start_from_b;
+	uint64_t offset_end_a = offset_from_b;
+	uint64_t offset_end_b = info->data.start_from_b + info->data.block_size*EL_SIZE;
+	uint64_t offset_to = info->data.start_to;
+	//a/b need to be loaded for the first time->set pointer to the end/limits to 0
+	EL_TYPE* current_el_a = (EL_TYPE*)1;
+	EL_TYPE* current_el_b = (EL_TYPE*)1;
+	EL_TYPE* current_el_c = info->blockc;
+	//points to end of blocka (smaller than startb, if not filled)
+	EL_TYPE* limit_blocka = 0;
+	EL_TYPE* limit_blockb = 0;
+	//all in bytes
+	uint64_t limit_a, limit_b, limit_c, limit_tmp;
+	int reached;
+	//0 - normal
+	//1 - a has finished (b should be copied over)
+	//2 - b has finished
+	//TODO make more efficient: instead of continuing with loop, directly copy rest of a/b
+
+	for(uint64_t i = 0; i<info->data.pairs; i++){
+		limit_a = (info->blockb - info->blocka)*EL_SIZE;
+		if(info->data.block_size < limit_a) limit_a = info->data.block_size;
+		limit_b = (info->blockc - info->blockb)*EL_SIZE;
+		if(info->data.block_size < limit_b) limit_b = info->data.block_size;
+		limit_c = 0;
+		reached = 0;
+
+		for(uint64_t el = 0; el < el_per_merge; el++){
+			//TODO more efficient: dont check every round (maybe using nested loops for write c?)
+			//read a
+			if(current_el_a >= limit_blocka){
+				if(offset_from_a == offset_end_a){
+					if(reached == 2) break;
+					reached = 1;
+				}else{
+					pthread_mutex_lock(&file_lock);
+					lseek(info->data.fd_from, offset_from_a, SEEK_SET);
+					if((limit_tmp=read(info->data.fd_from, info->blocka, limit_a)) < limit_a){
+						if(limit_tmp == 0){
+							printf("Error in merge sort while reading from file (a): %s\n", strerror(errno));
+							exit(39);	
+						}
+						limit_a = limit_tmp;
+						offset_end_a = offset_from_a + limit_a;
+					}
+					pthread_mutex_unlock(&file_lock);
+					current_el_a = info->blocka;
+					limit_blocka = current_el_a + limit_a/EL_SIZE;
+					offset_from_a += limit_a;
+				}
+			}
+
+			//read b
+			if(current_el_b >= limit_blockb){
+				if(offset_from_b == offset_end_b){
+					if(reached == 1) break;
+					reached = 2;
+				}else{
+					pthread_mutex_lock(&file_lock);
+					lseek(info->data.fd_from, offset_from_b, SEEK_SET);
+					if((limit_tmp=read(info->data.fd_from, info->blockb, limit_b)) < limit_b){
+						if(limit_tmp == 0){
+							printf("Error in merge sort while reading from file (b): %s\n", strerror(errno));
+							exit(40);	
+						}
+						limit_b = limit_tmp;
+						offset_end_b = offset_from_b + limit_b;
+					}
+					pthread_mutex_unlock(&file_lock);
+					current_el_b = info->blockb;
+					limit_blockb = current_el_b + limit_b/EL_SIZE;
+					offset_from_b += limit_b;
+				}
+			}
+
+			//write c
+			if(current_el_c >= info->end){
+				pthread_mutex_lock(&file_lock);
+				lseek(info->data.fd_to, offset_to, SEEK_SET);
+				if(write(info->data.fd_to, info->blockc, limit_c) < limit_c){
+					printf("Error in merge sort while writing to file: %s\n", strerror(errno));
+					exit(41);
+				}
+				pthread_mutex_unlock(&file_lock);
+				offset_to += limit_c;
+			}
+
+
+			//actual merging:
+			switch(reached){
+				case 0:
+					if(*current_el_a < *current_el_b){
+						*current_el_c = *current_el_a;
+						current_el_a++;
+					}else{
+						*current_el_c = *current_el_b;
+						current_el_b++;
+					}
+					break;
+				case 1:
+					*current_el_c = *current_el_b;
+					current_el_b++;
+					break;
+				case 2:
+					*current_el_c = *current_el_a;
+					current_el_a++;
+					break;
+			}
+			
+
+			current_el_c++;
+			limit_c += EL_SIZE;
+
+		}
+
+		//write rest of c
+		pthread_mutex_lock(&file_lock);
+		lseek(info->data.fd_to, offset_to, SEEK_SET);
+		if(write(info->data.fd_to, info->blockc, limit_c) < limit_c){
+			printf("Error in merge sort while writing to file: %s\n", strerror(errno));
+			exit(42);
+		}
+		pthread_mutex_unlock(&file_lock);
+		offset_to += limit_c;
+
+
+		//skip block-offsets to next pair, 1 block already skipped by adding limit to offset above
+		offset_from_a += info->data.block_size*EL_SIZE;
+		offset_from_b += info->data.block_size*EL_SIZE;
+
+	}
+
 
 
 	return NULL;

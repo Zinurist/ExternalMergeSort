@@ -221,20 +221,20 @@ int distribute_merge_sort(merge_thread* threads, int num_threads, int fd, int fd
 			threads[i].info.data.pairs = pairs_per_thread;
 			if(swap){
 				//fd_buffer->fd
-				threads[i].info.data.start_from_a = start;
-				threads[i].info.data.start_from_b = threads[i].info.data.start_from_a + block_size;
-				threads[i].info.data.end_from = end;
-				threads[i].info.data.start_to = start + sizeof(uint64_t);
+				threads[i].info.data.start_from_a = start*EL_SIZE;
+				threads[i].info.data.start_from_b = threads[i].info.data.start_from_a + block_size*EL_SIZE;
+				threads[i].info.data.end_from = end*EL_SIZE;
+				threads[i].info.data.start_to = start*EL_SIZE + sizeof(uint64_t);
 				
 				threads[i].info.data.fd_from = fd_buffer;
 				threads[i].info.data.fd_to = fd;
 				
 			}else{
 				//fd->fd_buffer
-				threads[i].info.data.start_from_a = start + sizeof(uint64_t);
-				threads[i].info.data.start_from_b = threads[i].info.data.start_from_a + block_size;
-				threads[i].info.data.end_from = end + sizeof(uint64_t);
-				threads[i].info.data.start_to = start;
+				threads[i].info.data.start_from_a = start*EL_SIZE + sizeof(uint64_t);
+				threads[i].info.data.start_from_b = threads[i].info.data.start_from_a + block_size*EL_SIZE;
+				threads[i].info.data.end_from = end*EL_SIZE + sizeof(uint64_t);
+				threads[i].info.data.start_to = start*EL_SIZE;
 				
 				threads[i].info.data.fd_from = fd;
 				threads[i].info.data.fd_to = fd_buffer;
