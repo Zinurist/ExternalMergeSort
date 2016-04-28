@@ -194,7 +194,7 @@ int distribute_merge_sort(merge_thread* threads, int num_threads, int fd, int fd
 	int err;
 	for(int run=0; run<num_runs; run++){
 		pairs = (num_elements-1)/block_size +1;
-		pairs = pairs/2;
+		pairs = round(pairs/2.0);
 
 		if(pairs < num_threads){
 			num_threads = pairs;

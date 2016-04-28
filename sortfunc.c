@@ -172,9 +172,14 @@ void * merge_sort(void* arg){
 					pthread_mutex_lock(&file_lock);
 					lseek(info->data.fd_from, offset_from_a, SEEK_SET);
 					if((limit_tmp=read(info->data.fd_from, info->blocka, limit_a)) < limit_a){
+						//might be empty after first run!
+						//if(limit_tmp == 0){
+						//	printf("Error in merge sort while reading from file (a): %s\n", strerror(errno));
+						//	exit(39);	
+						//}
 						if(limit_tmp == 0){
-							printf("Error in merge sort while reading from file (a): %s\n", strerror(errno));
-							exit(39);	
+							if(reached == 2) break;
+							reached = 1;
 						}
 						limit_a = limit_tmp;
 						offset_end_a = offset_from_a + limit_a;
@@ -195,9 +200,13 @@ void * merge_sort(void* arg){
 					pthread_mutex_lock(&file_lock);
 					lseek(info->data.fd_from, offset_from_b, SEEK_SET);
 					if((limit_tmp=read(info->data.fd_from, info->blockb, limit_b)) < limit_b){
-						if(limit_tmp == 0){
-							printf("Error in merge sort while reading from file (b): %s\n", strerror(errno));
-							exit(40);	
+						//if(limit_tmp == 0){
+						//	printf("Error in merge sort while reading from file (b): %s\n", strerror(errno));
+						//	exit(40);	
+						//}
+						if(limit_tmp == 0){	
+							if(reached == 1) break;
+							reached = 2;
 						}
 						limit_b = limit_tmp;
 						offset_end_b = offset_from_b + limit_b;
