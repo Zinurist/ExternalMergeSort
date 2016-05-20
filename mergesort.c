@@ -51,7 +51,7 @@ int start(int fd, EL_TYPE *buffer, size_t size, merge_thread* threads, int num_t
 
 	fprintf(stderr,"Starting merge sort...\n");
 
-	if(distribute_merge_sort(threads, num_threads, fd, fd_buffer, num_elements)){
+	if(distribute_merge_sort(threads, num_threads, fd, fd_buffer, num_elements, buffer, size)){
 		close(fd_buffer);
 		return 15;
 	}
@@ -180,7 +180,7 @@ int distribute_simple_sort(merge_thread* threads, int num_threads, int fd, int f
 }
 
 
-int distribute_merge_sort(merge_thread* threads, int num_threads, int fd, int fd_buffer, uint64_t num_elements){
+int distribute_merge_sort(merge_thread* threads, int num_threads, int fd, int fd_buffer, uint64_t num_elements, EL_TYPE *buffer, size_t size){
 	//reusing distribution data from simple sort!!
 	uint64_t block_size = SIMPLE_SORT_NUM;
 	uint64_t pairs, pairs_per_thread, start, end;
@@ -198,7 +198,8 @@ int distribute_merge_sort(merge_thread* threads, int num_threads, int fd, int fd
 
 		if(pairs < num_threads){
 			num_threads = pairs;
-			//TODO distribute buffer
+			//redistribute buffer
+			distribute_buffer(threads, num_threads, buffer, size);
 		}
 		fprintf(stderr,"\nStarting run %i: %lu elements/block, %i thread(s), %lu pairs\n", run, block_size, num_threads, pairs);
 
