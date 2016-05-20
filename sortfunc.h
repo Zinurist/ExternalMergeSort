@@ -31,6 +31,9 @@ typedef struct thread_info{
 void * simple_sort(void* arg);
 void quick_sort(EL_TYPE* buffer, size_t size);
 void * merge_sort(void* arg);
+size_t flush_rest(int fd, EL_TYPE* block, EL_TYPE* end, uint64_t offset);
+void set(int fd, EL_TYPE* block, EL_TYPE value, EL_TYPE** dest, EL_TYPE* limit_block, uint64_t* offset);
+int get(int fd, EL_TYPE* block, EL_TYPE* value, EL_TYPE** src, EL_TYPE** limit_block, size_t limit, uint64_t* offset, uint64_t offset_end);
 
 int is_sorted(int fd, EL_TYPE *buffer, size_t size);
 

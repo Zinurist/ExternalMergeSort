@@ -193,28 +193,34 @@ int distribute_merge_sort(merge_thread* threads, int num_threads, int fd, int fd
 	//runs
 	int err;
 	for(int run=0; run<num_runs; run++){
-		pairs = (num_elements-1)/block_size +1;
-		pairs = round(pairs/2.0);
+		pairs = (num_elements)/(block_size*2);
+		if(num_elements%(block_size*2) != 0) pairs++;
 
 		if(pairs < num_threads){
 			num_threads = pairs;
+			//TODO distribute buffer
 		}
-		fprintf(stderr,"\nStarting run %i: %lu elements/block, %i thread(s)\n", run, block_size, num_threads);
-
-		pairs_per_thread = pairs/num_threads;
-		//printf("%lu pairs, %lu per thread\n", pairs, pairs_per_thread);
+		fprintf(stderr,"\nStarting run %i: %lu elements/block, %i thread(s), %lu pairs\n", run, block_size, num_threads, pairs);
 
 		end = 0;
 		//create threads
 		for(int i=0; i<num_threads; i++){
 
+			//pairs per thread calculated for each thread!
+			pairs_per_thread = pairs/(num_threads-i);
+			if(pairs%(num_threads-i) != 0) pairs_per_thread++;
+
 			//create merge data
 			start = end;
 			if(i==num_threads-1){
-				end = num_elements;
+				end = num_elements;//rest of elements
+				pairs_per_thread = pairs;//rest of pairs
 			}else{
 				end = start + pairs_per_thread*2*block_size;
 			}
+
+			//calculate rest pairs to distribute
+			pairs -= pairs_per_thread;
 			//printf("thread %i: start=%lu, end=%lu\n", i, start, end);
 
 			threads[i].info.data.block_size = block_size;

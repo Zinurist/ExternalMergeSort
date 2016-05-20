@@ -126,8 +126,173 @@ void quick_sort(EL_TYPE* buffer, size_t size){
 }
 
 
+int get(int fd, EL_TYPE* block, EL_TYPE* value, EL_TYPE** src, EL_TYPE** limit_block, size_t limit, uint64_t* offset, uint64_t offset_end){
+	if((*src) >= (*limit_block)){
+		if((*offset) >= offset_end){
+			return 1;
+		}
+
+		//read
+		if(limit > offset_end - (*offset)) limit = offset_end - (*offset);
+
+		pthread_mutex_lock(&file_lock);
+		lseek(fd, (*offset), SEEK_SET);
+		if(read(fd, block, limit) < limit){
+			printf("E\n");
+			//apparently this happens sometimes
+			//printf("Error in merge sort while reading from file: %s\n", strerror(errno));
+			//exit(39);	
+		}
+		pthread_mutex_unlock(&file_lock);
+
+		*limit_block = block+(limit/EL_SIZE);
+		*offset += limit;
+		*src = block;
+
+	}
+	
+	*value = **src;
+	(*src)++;
+	return 0;
+}
+
+void set(int fd, EL_TYPE* block, EL_TYPE value, EL_TYPE** dest, EL_TYPE* limit_block, uint64_t* offset){
+	if((*dest) >= limit_block){
+		//write
+		*offset += flush_rest(fd, block, (*dest), (*offset));
+		*dest = block;
+	}
+	
+	**dest = value;
+	(*dest)++;
+
+}
+
+size_t flush_rest(int fd, EL_TYPE* block, EL_TYPE* end, uint64_t offset){
+
+	size_t limit = (end - block)*EL_SIZE;
+
+	pthread_mutex_lock(&file_lock);
+	lseek(fd, offset, SEEK_SET);
+	if(write(fd, block, limit) < limit){
+		printf("Error in merge sort while writing to file: %s\n", strerror(errno));
+		exit(41);
+	}
+	pthread_mutex_unlock(&file_lock);
 
 
+	return limit;
+}
+
+
+void * merge_sort(void* arg){
+
+	thread_info* info = (thread_info*) arg;
+
+	//uint64_t el_per_merge = info->data.block_size*2;
+	uint64_t offset_from_a = info->data.start_from_a;
+	uint64_t offset_from_b = info->data.start_from_b;
+	uint64_t offset_end_a;
+	uint64_t offset_end_b;
+	uint64_t offset_to = info->data.start_to;
+	int reached = 1;
+	int last = 0;
+	//first time both will be loaded
+	//after that: last=1 if a written, last=-1 if b written
+
+	EL_TYPE a,b;
+	EL_TYPE* cur_a;
+	EL_TYPE* cur_b;
+	EL_TYPE* cur_c;
+
+	size_t limit_a, limit_b;
+	EL_TYPE* limit_blocka;
+	EL_TYPE* limit_blockb;
+
+	limit_a = (info->blockb - info->blocka)*EL_SIZE;
+	limit_b = (info->blockc - info->blockb)*EL_SIZE;
+
+	for(uint64_t i = 0; i<info->data.pairs; ){
+		reached = 1;
+		last = 0;
+		cur_c = info->blockc;
+		cur_a = 0;
+		cur_b = 0;
+		limit_blocka = 0;
+		limit_blockb = 0;
+
+		offset_end_a = offset_from_a+info->data.block_size;
+		offset_end_b = offset_from_b+info->data.block_size;
+		//last pair, might have to end earlier!
+		if(++i == info->data.pairs){
+			if(info->data.end_from <= offset_end_a){
+				offset_end_a = info->data.end_from;
+				offset_end_b = offset_from_b;
+				reached = 3;
+			}else /*if(info->data.end_from < offset_end_b)*/{
+				offset_end_b = info->data.end_from;
+			}
+		}
+
+		//first load, after that only one of them is loaded;
+		get(info->data.fd_from, info->blocka, &a, &cur_a, &limit_blocka, limit_a, &offset_from_a, offset_end_a);
+		get(info->data.fd_from, info->blockb, &b, &cur_b, &limit_blockb, limit_b, &offset_from_b, offset_end_b);
+
+		while(reached){
+			switch(reached){
+				case 0: break;
+				case 1://normal
+					if(last >=1 && get(info->data.fd_from, info->blocka, &a, &cur_a, &limit_blocka, limit_a, &offset_from_a, offset_end_a)){
+						reached = 2;
+						break;
+					}
+					if(last <=-1 && get(info->data.fd_from, info->blockb, &b, &cur_b, &limit_blockb, limit_b, &offset_from_b, offset_end_b)){
+						reached = 3;
+						break;
+					} 
+					if(a<b){
+						//printf("set %x, not %x, %d\n", a,b,reached);
+						set(info->data.fd_to, info->blockc, a, &cur_c, info->end, &offset_to);
+						last = 1;
+					}else{
+						//printf("set %x, not %x, %d\n", b, a,reached);
+						set(info->data.fd_to, info->blockc, b, &cur_c, info->end, &offset_to);
+						last = -1;
+					}
+					break;
+				case 2://a exhausted
+					set(info->data.fd_to, info->blockc, b, &cur_c, info->end, &offset_to);
+
+					if(get(info->data.fd_from, info->blockb, &b, &cur_b, &limit_blockb, limit_b, &offset_from_b, offset_end_b)){
+						reached = 0;
+						break;
+					}
+					break;
+				case 3://b exhausted
+					set(info->data.fd_to, info->blockc, a, &cur_c, info->end, &offset_to);
+
+					if(get(info->data.fd_from, info->blocka, &a, &cur_a, &limit_blocka, limit_a, &offset_from_a, offset_end_a)){
+						reached = 0;
+						break;
+					}
+					break;
+			}
+
+		}
+
+		offset_to += flush_rest(info->data.fd_to, info->blockc, cur_c, offset_to);
+
+		//skip the other block
+		offset_from_a += info->data.block_size;
+		offset_from_b += info->data.block_size;
+
+	}
+
+
+
+	return NULL;
+}
+/*
 void * merge_sort(void* arg){
 
 	thread_info* info = (thread_info*) arg;
@@ -146,43 +311,44 @@ void * merge_sort(void* arg){
 	EL_TYPE* limit_blocka = 0;
 	EL_TYPE* limit_blockb = 0;
 	//all in bytes
-	uint64_t limit_a, limit_b, limit_c, limit_tmp;
+	uint64_t limit_a, limit_b, limit_c, limit_min_a, limit_min_b;
 	int reached;
 	//0 - normal
 	//1 - a has finished (b should be copied over)
 	//2 - b has finished
 	//TODO make more efficient: instead of continuing with loop, directly copy rest of a/b
 
+	limit_min_a = (info->blockb - info->blocka)*EL_SIZE;
+	if(info->data.block_size < limit_min_a) limit_min_a = info->data.block_size;
+	limit_min_b = (info->blockc - info->blockb)*EL_SIZE;
+	if(info->data.block_size < limit_min_b) limit_min_b = info->data.block_size;
+
 	for(uint64_t i = 0; i<info->data.pairs; i++){
-		limit_a = (info->blockb - info->blocka)*EL_SIZE;
-		if(info->data.block_size < limit_a) limit_a = info->data.block_size;
-		limit_b = (info->blockc - info->blockb)*EL_SIZE;
-		if(info->data.block_size < limit_b) limit_b = info->data.block_size;
 		limit_c = 0;
 		reached = 0;
+
+		if(offset_end_a > info->data.end_from){
+			offset_end_a = info->data.end_from;
+			offset_end_b = info->data.end_from;
+		}else if(offset_end_b > info->data.end_from){
+			offset_end_b = info->data.end_from;
+		}
 
 		for(uint64_t el = 0; el < el_per_merge; el++){
 			//TODO more efficient: dont check every round (maybe using nested loops for write c?)
 			//read a
 			if(current_el_a >= limit_blocka){
-				if(offset_from_a == offset_end_a){
+				limit_a = offset_end_a - offset_from_a;
+				if(limit_min_a < limit_a) limit_a = limit_min_a;
+				if(offset_end_a <= offset_from_a){
 					if(reached == 2) break;
 					reached = 1;
 				}else{
 					pthread_mutex_lock(&file_lock);
 					lseek(info->data.fd_from, offset_from_a, SEEK_SET);
-					if((limit_tmp=read(info->data.fd_from, info->blocka, limit_a)) < limit_a){
-						//might be empty after first run!
-						//if(limit_tmp == 0){
-						//	printf("Error in merge sort while reading from file (a): %s\n", strerror(errno));
-						//	exit(39);	
-						//}
-						if(limit_tmp == 0){
-							if(reached == 2) break;
-							reached = 1;
-						}
-						limit_a = limit_tmp;
-						offset_end_a = offset_from_a + limit_a;
+					if(read(info->data.fd_from, info->blocka, limit_a) < limit_a){
+						//printf("Error in merge sort while reading from file (a): %s\n", strerror(errno));
+						//exit(39);	
 					}
 					pthread_mutex_unlock(&file_lock);
 					current_el_a = info->blocka;
@@ -193,23 +359,17 @@ void * merge_sort(void* arg){
 
 			//read b
 			if(current_el_b >= limit_blockb){
-				if(offset_from_b == offset_end_b){
+				limit_b = offset_end_b - offset_from_b;				
+				if(limit_min_b < limit_b) limit_b = limit_min_b;
+				if(offset_end_b <= offset_from_b){
 					if(reached == 1) break;
 					reached = 2;
 				}else{
 					pthread_mutex_lock(&file_lock);
 					lseek(info->data.fd_from, offset_from_b, SEEK_SET);
-					if((limit_tmp=read(info->data.fd_from, info->blockb, limit_b)) < limit_b){
-						//if(limit_tmp == 0){
-						//	printf("Error in merge sort while reading from file (b): %s\n", strerror(errno));
-						//	exit(40);	
-						//}
-						if(limit_tmp == 0){	
-							if(reached == 1) break;
-							reached = 2;
-						}
-						limit_b = limit_tmp;
-						offset_end_b = offset_from_b + limit_b;
+					if(read(info->data.fd_from, info->blockb, limit_b) < limit_b){
+						//printf("Error in merge sort while reading from file (b): %s\n", strerror(errno));
+						//exit(40);	
 					}
 					pthread_mutex_unlock(&file_lock);
 					current_el_b = info->blockb;
@@ -229,7 +389,6 @@ void * merge_sort(void* arg){
 				pthread_mutex_unlock(&file_lock);
 				offset_to += limit_c;
 			}
-
 
 			//actual merging:
 			switch(reached){
@@ -272,6 +431,8 @@ void * merge_sort(void* arg){
 		//skip block-offsets to next pair, 1 block already skipped by adding limit to offset above
 		offset_from_a += info->data.block_size*EL_SIZE;
 		offset_from_b += info->data.block_size*EL_SIZE;
+		offset_end_b += info->data.block_size*EL_SIZE*2;
+		offset_end_b += info->data.block_size*EL_SIZE*2;
 
 	}
 
@@ -279,7 +440,7 @@ void * merge_sort(void* arg){
 
 	return NULL;
 }
-
+*/
 
 
 
