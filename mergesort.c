@@ -94,18 +94,14 @@ void print_thread_data(merge_thread* threads, int num_threads, int swap){
 
 void distribute_buffer(merge_thread* threads, int num_threads, EL_TYPE *buffer, size_t size){
 	size_t default_size = size/num_threads;
-	size_t block_size = default_size/3;
+	//distribution: 1:1:2, since block a/b process half the data of block c
+	size_t block_size = default_size/4;
 	size_t block_size_c = default_size-2*block_size;
 
 	EL_TYPE* offset = buffer;
 
 	for(int i=0; i<num_threads; i++){
 		//block c has rest of this threads buffer
-
-		//old from before commit 3c210e84b1a2dcf1e446181f88a3284f27df5955 
-		//threads[i].info.sizea = block_size;
-		//threads[i].info.sizeb = block_size;
-		//threads[i].info.sizec = block_size_c;
 
 		threads[i].info.blocka = offset;
 		threads[i].info.blockb = offset+block_size;
