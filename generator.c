@@ -11,8 +11,7 @@ int generate(int fd, EL_TYPE *buffer, size_t size,  uint64_t num_create){
 
 	uint64_t runs = (num_create/size)+1;
 
-	uint64_t limit, offset;
-	offset = 0;
+	uint64_t limit;
 
 	srand(time(NULL));
 	for(uint64_t i=0; i<runs; i++){
@@ -24,7 +23,7 @@ int generate(int fd, EL_TYPE *buffer, size_t size,  uint64_t num_create){
 		}
 
 		for(uint64_t k=0; k<limit; k++){
-			buffer[offset+k] = rand();
+			buffer[k] = rand();
 		}
 
 		if(write(fd, buffer, EL_SIZE*limit) < EL_SIZE*limit){
@@ -32,7 +31,6 @@ int generate(int fd, EL_TYPE *buffer, size_t size,  uint64_t num_create){
 			return 7;
 		}
 
-		offset += limit;
 		num_create -= limit;
 	}
 
