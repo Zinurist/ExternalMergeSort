@@ -11,7 +11,7 @@
 #include <inttypes.h>
 
 //needs to be comparable using > < >= <=
-#define EL_TYPE unsigned short 
+#define EL_TYPE unsigned int 
 #define EL_SIZE (sizeof(EL_TYPE))
 //needs to be >0
 #define SIMPLE_SORT_NUM 8 
