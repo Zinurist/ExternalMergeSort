@@ -12,7 +12,7 @@ typedef struct sort_data{
 	uint64_t start_from_b;
 	uint64_t end_from;
 	uint64_t start_to;
-	uint64_t block_size;
+	uint64_t block_size;//in elements
 	uint64_t pairs;
 	int fd_from;
 	int fd_to;
