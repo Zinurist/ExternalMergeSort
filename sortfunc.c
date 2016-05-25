@@ -205,7 +205,7 @@ void * merge_sort(void* arg){
 	EL_TYPE a,b;
 	EL_TYPE* cur_a;
 	EL_TYPE* cur_b;
-	EL_TYPE* cur_c;
+	EL_TYPE* cur_c = info->blockc;
 
 	size_t limit_a, limit_b;
 	EL_TYPE* limit_blocka;
@@ -217,7 +217,6 @@ void * merge_sort(void* arg){
 	for(uint64_t i = 0; i<info->data.pairs; ){
 		reached = 1;
 		last = 0;
-		cur_c = info->blockc;
 		cur_a = 0;
 		cur_b = 0;
 		limit_blocka = 0;
@@ -282,7 +281,6 @@ void * merge_sort(void* arg){
 
 		}
 
-		offset_to += flush_rest(info->data.fd_to, info->blockc, cur_c, offset_to);
 
 		//skip the other block
 		offset_from_a += info->data.block_size;
@@ -290,6 +288,7 @@ void * merge_sort(void* arg){
 
 	}
 
+	flush_rest(info->data.fd_to, info->blockc, cur_c, offset_to);	
 
 
 	return NULL;
