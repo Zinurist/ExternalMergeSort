@@ -22,6 +22,7 @@ int start(int fd, EL_TYPE *buffer, size_t size, merge_thread* threads, int num_t
 	int fd_buffer = -1;
 	fd_buffer = mkstemp(tmp);
 	unlink(tmp);//->file gets deleted when closed
+	//int fd_buffer = open("test2.txt", O_RDWR|O_CREAT);;
 	if(fd_buffer < 0){
 		printf("Error when creating buffer file: %s\n",strerror(errno));
 		return 4;
@@ -124,8 +125,10 @@ int distribute_simple_sort(merge_thread* threads, int num_threads, int fd, int f
 
 	//calculating distribution of elements on threads
 	uint64_t pairs = num_elements/SIMPLE_SORT_NUM;//simple sort sorts SIMPLE_SORT_NUM elements
-	uint64_t el_per_thread = (pairs/num_threads)*SIMPLE_SORT_NUM;//last thread has a few more, if not divisble
+	uint64_t el_per_thread = (pairs/num_threads)*SIMPLE_SORT_NUM;//last thread has a few more, if not divisible
 	uint64_t el_rest = num_elements-(el_per_thread*num_threads);
+	//it's possible that the last thread does (num_threads-1) mor simple sorts than the other threads!
+	//doesn't matter because of small SIMPLE_SORT_NUM
 
 	//calculating number of merge phases, needed to determine correct file buffer
 	//ld(pairs) = depth of merge tree
@@ -200,6 +203,7 @@ int distribute_merge_sort(merge_thread* threads, int num_threads, int fd, int fd
 			num_threads = pairs;
 			//redistribute buffer
 			distribute_buffer(threads, num_threads, buffer, size);
+			fprintf(stderr, "\nRedistributing buffer...");
 		}
 		fprintf(stderr,"\nStarting run %i: %lu elements/block, %i thread(s), %lu pairs\n", run, block_size, num_threads, pairs);
 

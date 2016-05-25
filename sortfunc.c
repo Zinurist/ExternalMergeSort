@@ -96,7 +96,8 @@ void quick_sort(EL_TYPE* buffer, size_t size){
 
 	EL_TYPE pivot = buffer[0];
 	EL_TYPE tmp;
-	EL_TYPE *left, *right;
+	EL_TYPE *left;
+	EL_TYPE *right;
 	left = buffer+1;
 	right = buffer+size-1;
 
@@ -149,8 +150,9 @@ int get(int fd, EL_TYPE* block, EL_TYPE* value, EL_TYPE** src, EL_TYPE** limit_b
 		*offset += limit;
 		*src = block;
 
+
 	}
-	
+
 	*value = **src;
 	(*src)++;
 	return 0;
@@ -162,7 +164,7 @@ void set(int fd, EL_TYPE* block, EL_TYPE value, EL_TYPE** dest, EL_TYPE* limit_b
 		*offset += flush_rest(fd, block, (*dest), (*offset));
 		*dest = block;
 	}
-	
+
 	**dest = value;
 	(*dest)++;
 
@@ -221,8 +223,8 @@ void * merge_sort(void* arg){
 		limit_blocka = 0;
 		limit_blockb = 0;
 
-		offset_end_a = offset_from_a+info->data.block_size;
-		offset_end_b = offset_from_b+info->data.block_size;
+		offset_end_a = offset_from_a+info->data.block_size * EL_SIZE;
+		offset_end_b = offset_from_b+info->data.block_size * EL_SIZE;
 		//last pair, might have to end earlier!
 		if(++i == info->data.pairs){
 			if(info->data.end_from <= offset_end_a){
