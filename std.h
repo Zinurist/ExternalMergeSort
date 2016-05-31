@@ -14,6 +14,6 @@
 #define EL_TYPE unsigned int 
 #define EL_SIZE (sizeof(EL_TYPE))
 //needs to be >0
-#define SIMPLE_SORT_NUM 8 
+#define SIMPLE_SORT_SIZE_MIN 8 
 
 #endif

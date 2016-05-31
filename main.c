@@ -54,7 +54,7 @@ int main(int argc, char *argv[]){
 	}
 	//making sure, it's correctly aligned
 	size = (size/EL_SIZE)*EL_SIZE;
-	if(size < EL_SIZE*num_threads*3*SIMPLE_SORT_NUM){//each threads gets 3 blocks of at least SIMPLE_SORT_NUM elements
+	if(size < EL_SIZE*num_threads*3*SIMPLE_SORT_SIZE_MIN){//each threads gets 3 blocks of at least SIMPLE_SORT_NUM elements
 		printf("Buffer not big enough, aborting.\n");
 		return 11;
 	}

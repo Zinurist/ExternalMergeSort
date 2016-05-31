@@ -7,15 +7,15 @@ void * simple_sort(void * arg){
 	thread_info* info = (thread_info*) arg;
 
 	//assert: (end_el-start_el) % SIMPLE_SORT_NUM = 0, unless its the last thread
-
+	size_t simple_sort_size = info->data.block_size;
 	size_t size = info->end - info->blocka;
-	size = (size/SIMPLE_SORT_NUM)*SIMPLE_SORT_NUM; //pairs of SIMPLE_SORT_NUM elements are sorted
+	size = (size/simple_sort_size)*simple_sort_size; //pairs of SIMPLE_SORT_NUM elements are sorted
 
 	//TODO store this part in data.block_size/pairs during distribution of simplesort
 	uint64_t num_elements = (info->data.end_from - info->data.start_from_a)/EL_SIZE;
 
 	//num of elements that fit into pairs
-	uint64_t num_el_fit = (num_elements/SIMPLE_SORT_NUM)*SIMPLE_SORT_NUM;
+	uint64_t num_el_fit = (num_elements/simple_sort_size)*simple_sort_size;
 
 
 	uint64_t runs = (num_el_fit/size)+1;
@@ -56,9 +56,9 @@ void * simple_sort(void * arg){
 			//instead of count from 0 to limit, count the other way -> no subtracting in the if-clause below needed
 
 			//if+else should be faster than modulo
-			//num_to_sort = limit % SIMPLE_SORT_NUM;
-			if(k < SIMPLE_SORT_NUM)	num_to_sort = k;
-			else 					num_to_sort = SIMPLE_SORT_NUM;
+			//num_to_sort = limit % simple_sort_size;
+			if(k < simple_sort_size)	num_to_sort = k;
+			else 						num_to_sort = simple_sort_size;
 			quick_sort(current_el, num_to_sort);
 			//printf("after: %x, %x, %x, %x\n", current_el[0],current_el[1],current_el[2],current_el[3]);
 			current_el += num_to_sort;
@@ -251,7 +251,7 @@ void * merge_sort(void* arg){
 						reached = 3;
 						break;
 					} 
-					
+
 					if(a<b){
 						//printf("set %x, not %x, %d\n", a,b,reached);
 						set(info->data.fd_to, info->blockc, a, &cur_c, info->end, &offset_to);

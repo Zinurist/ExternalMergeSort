@@ -43,16 +43,19 @@ int start(int fd, EL_TYPE *buffer, size_t size, merge_thread* threads, int num_t
 	distribute_buffer(threads, num_threads, buffer, size);
 	print_threads(threads, num_threads, buffer, size);
 
+	//maximal/optimal block size for simple (quick) sort
+	size_t simple_sort_size = threads[0].info.end - threads[0].info.blocka;
+
 	fprintf(stderr,"Starting simple sort...\n");
 
-	if(distribute_simple_sort(threads, num_threads, fd, fd_buffer, num_elements)){
+	if(distribute_simple_sort(threads, num_threads, fd, fd_buffer, num_elements, simple_sort_size)){
 		close(fd_buffer);
 		return 14;
 	}
 
 	fprintf(stderr,"Starting merge sort...\n");
 
-	if(distribute_merge_sort(threads, num_threads, fd, fd_buffer, num_elements, buffer, size)){
+	if(distribute_merge_sort(threads, num_threads, fd, fd_buffer, num_elements, simple_sort_size, buffer, size)){
 		close(fd_buffer);
 		return 15;
 	}
@@ -117,18 +120,18 @@ void distribute_buffer(merge_thread* threads, int num_threads, EL_TYPE *buffer, 
 }
 
 
-int distribute_simple_sort(merge_thread* threads, int num_threads, int fd, int fd_buffer, uint64_t num_elements){
+int distribute_simple_sort(merge_thread* threads, int num_threads, int fd, int fd_buffer, uint64_t num_elements, size_t simple_sort_size){
 
 	//calculating distribution of elements on threads
-	uint64_t pairs = num_elements/SIMPLE_SORT_NUM;//simple sort sorts SIMPLE_SORT_NUM elements
-	uint64_t el_per_thread = (pairs/num_threads)*SIMPLE_SORT_NUM;//last thread has a few more, if not divisible
+	uint64_t pairs = num_elements/simple_sort_size;//simple sort sorts simple_sort_size elements
+	uint64_t el_per_thread = (pairs/num_threads)*simple_sort_size;//last thread has a few more, if not divisible
 	uint64_t el_rest = num_elements-(el_per_thread*num_threads);
-	//it's possible that the last thread does (num_threads-1) mor simple sorts than the other threads!
-	//doesn't matter because of small SIMPLE_SORT_NUM
+	//it's possible that the last thread does (num_threads-1) more simple sorts than the other threads!
+	//doesn't matter because of small simple_sort_size
 
 	//calculating number of merge phases, needed to determine correct file buffer
 	//ld(pairs) = depth of merge tree
-	if(num_elements%SIMPLE_SORT_NUM !=0) pairs++;
+	if(num_elements%simple_sort_size !=0) pairs++;
 	int even = ceil(log(pairs)/log(2));
 	even = even%2;
 
@@ -145,7 +148,7 @@ int distribute_simple_sort(merge_thread* threads, int num_threads, int fd, int f
 			end_el += el_rest;
 		}
 
-
+		threads[i].info.data.block_size = simple_sort_size;
 		threads[i].info.data.start_from_a = start_el*EL_SIZE+sizeof(uint64_t);
 		threads[i].info.data.end_from = end_el*EL_SIZE+sizeof(uint64_t);
 		threads[i].info.data.fd_from = fd;
@@ -179,13 +182,13 @@ int distribute_simple_sort(merge_thread* threads, int num_threads, int fd, int f
 }
 
 
-int distribute_merge_sort(merge_thread* threads, int num_threads, int fd, int fd_buffer, uint64_t num_elements, EL_TYPE *buffer, size_t size){
-	//reusing distribution data from simple sort!!
-	uint64_t block_size = SIMPLE_SORT_NUM;
+int distribute_merge_sort(merge_thread* threads, int num_threads, int fd, int fd_buffer, uint64_t num_elements, size_t simple_sort_size, EL_TYPE *buffer, size_t size){
+	
+	uint64_t block_size = simple_sort_size;
 	uint64_t pairs, pairs_per_thread, start, end;
 
-	int num_runs = ceil(log(num_elements/(double)SIMPLE_SORT_NUM)/log(2));
-	fprintf(stderr,"%i merge run(s)\n", num_runs);
+	int num_runs = ceil(log(num_elements/(double)simple_sort_size)/log(2));
+	fprintf(stderr,"%i merge run(s)\n", (num_runs>0?num_runs:0));
 
 	int swap = num_runs%2;
 
